@@ -166,32 +166,40 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
                   {hasGuides && (
                     <td className="py-3 pr-3 text-center">
                       {guide ? (
-                        isUpDown ? (
-                          /* Up/Down: show probabilities */
+                        guide.marketUpProb != null && guide.marketDownProb != null ? (
+                          /* Live Polymarket data: show up/down probabilities */
                           <div className="flex items-center justify-center gap-2">
                             <div className="flex items-center gap-0.5">
                               <ArrowUpCircle className="h-3 w-3 text-emerald-500" />
                               <span className="font-mono text-[11px] font-semibold text-emerald-500">
-                                {guide.marketUpProb?.toFixed(0) ?? "--"}%
+                                {guide.marketUpProb.toFixed(0)}%
                               </span>
                             </div>
                             <div className="flex items-center gap-0.5">
                               <ArrowDownCircle className="h-3 w-3 text-red-400" />
                               <span className="font-mono text-[11px] font-semibold text-red-400">
-                                {guide.marketDownProb?.toFixed(0) ?? "--"}%
+                                {guide.marketDownProb.toFixed(0)}%
+                              </span>
+                            </div>
+                          </div>
+                        ) : guide.aboveProb != null ? (
+                          /* Fallback: show Chanlun-computed above probability */
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="flex items-center gap-0.5">
+                              <ArrowUpCircle className={`h-3 w-3 ${guide.aboveProb >= 50 ? "text-emerald-500" : "text-red-400"}`} />
+                              <span className={`font-mono text-[11px] font-semibold ${guide.aboveProb >= 50 ? "text-emerald-500" : "text-red-400"}`}>
+                                {guide.aboveProb.toFixed(0)}%
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-0.5">
+                              <ArrowDownCircle className={`h-3 w-3 ${guide.aboveProb < 50 ? "text-red-400" : "text-emerald-500"}`} />
+                              <span className={`font-mono text-[11px] font-semibold ${guide.aboveProb < 50 ? "text-red-400" : "text-emerald-500"}`}>
+                                {(100 - guide.aboveProb).toFixed(0)}%
                               </span>
                             </div>
                           </div>
                         ) : (
-                          /* Strike: show base price */
-                          <div className="flex flex-col items-center">
-                            <span className="font-mono text-xs font-semibold text-[var(--brand-100)]">
-                              ${formatPriceShort(guide.basePrice ?? 0)}
-                            </span>
-                            <span className="text-[9px] text-[var(--fg-muted)]">
-                              {guide.timeframeLabel}
-                            </span>
-                          </div>
+                          <span className="text-[10px] text-[var(--fg-muted)]">--</span>
                         )
                       ) : (
                         <span className="text-[10px] text-[var(--fg-muted)]">--</span>
