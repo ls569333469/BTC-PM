@@ -2,6 +2,7 @@
 Cron/scheduler management API routes — full APScheduler integration.
 """
 
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,7 +50,7 @@ async def run_job(job_id: str):
     if not job:
         return {"error": f"Job {job_id} not found"}
 
-    job.modify(next_run_time=None)  # Run immediately
+    job.modify(next_run_time=datetime.now(timezone.utc))  # Run immediately
     return {"status": "triggered", "job_id": job_id}
 
 
