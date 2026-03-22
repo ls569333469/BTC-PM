@@ -88,7 +88,7 @@ export function useChanlunAnalysis(refetchInterval?: number) {
   return useQuery<ChanlunAnalysis>({
     queryKey: ["chanlun", "analysis"],
     queryFn: fetchChanlunAnalysis,
-    refetchInterval: refetchInterval || 15 * 60 * 1000, // 15min default
+    refetchInterval: refetchInterval || 5 * 60 * 1000, // 5min default
     staleTime: 60 * 1000,
   });
 }

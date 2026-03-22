@@ -18,7 +18,7 @@ import { PolymarketGuide } from "./components/PolymarketGuide";
 import { Skeleton } from "./components/ui/skeleton";
 import ErrorBoundary from "./ErrorBoundary";
 
-const REFRESH_INTERVAL = 15 * 60 * 1000; // 15 minutes
+const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 export default function App() {
   const { resolvedTheme, setTheme } = useTheme();

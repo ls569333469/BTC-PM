@@ -13,9 +13,9 @@ except ImportError:
     HAS_TALIB = False
 
 
-MULTIPLIERS = {"30m": 1, "1h": 2, "2h": 3, "4h": 5, "8h": 8, "12h": 10, "24h": 14}
-TIMEFRAMES = ["30m", "1h", "2h", "4h", "8h", "12h", "24h"]
-WEIGHT_CLASSES = {"30m": "1H", "1h": "1H", "2h": "4H", "4h": "4H", "8h": "1D", "12h": "1D", "24h": "1D"}
+MULTIPLIERS = {"5m": 0.5, "30m": 1, "1h": 2, "2h": 3, "4h": 5, "8h": 8, "12h": 10, "24h": 14}
+TIMEFRAMES = ["5m", "30m", "1h", "2h", "4h", "8h", "12h", "24h"]
+WEIGHT_CLASSES = {"5m": "1H", "30m": "1H", "1h": "1H", "2h": "4H", "4h": "4H", "8h": "1D", "12h": "1D", "24h": "1D"}
 
 
 def generate_predictions(

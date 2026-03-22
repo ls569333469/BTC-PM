@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     polymarket_base_url: str = "https://gamma-api.polymarket.com"
 
     # Scheduler
-    analysis_interval_minutes: int = 15
+    analysis_interval_minutes: int = 5
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

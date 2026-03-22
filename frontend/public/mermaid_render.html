@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>BTC缠论分析器 — 架构导图</title>
+<style>
+  body { background: #0a0a1a; color: #e0e0e0; font-family: 'Microsoft YaHei', sans-serif; padding: 40px 60px; margin: 0; }
+  h1 { text-align: center; color: #00d4ff; font-size: 32px; margin-bottom: 40px; }
+  h2 { color: #a78bfa; font-size: 22px; margin-top: 50px; border-left: 4px solid #7c3aed; padding-left: 12px; }
+  .mermaid { background: #111827; border-radius: 12px; padding: 30px; margin: 20px 0; border: 1px solid #1e293b; }
+  hr { border: none; border-top: 1px solid #1e293b; margin: 40px 0; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+mermaid.initialize({
+  startOnLoad: true, theme: 'dark',
+  themeVariables: { darkMode: true, background: '#111827', primaryColor: '#7c3aed', primaryBorderColor: '#a78bfa', primaryTextColor: '#f0f0f0', secondaryColor: '#1e3a5f', lineColor: '#6366f1', textColor: '#e0e0e0', mainBkg: '#1e293b', nodeBorder: '#6366f1', clusterBkg: '#0f172a', clusterBorder: '#334155', fontFamily: 'Microsoft YaHei, sans-serif', fontSize: '14px' },
+  flowchart: { curve: 'basis', padding: 15 },
+});
+</script>
+</head>
+<body>
+
+<h1>🔗 BTC缠论分析器 — 架构导图</h1>
+
+<h2>一、系统架构总览</h2>
+<div class="mermaid">
+graph TB
+    subgraph 外部数据源
+        B["币安API<br/>K线·资金费率·持仓量"]
+        F["恐惧贪婪指数API"]
+        P["Polymarket API<br/>预测市场盘口数据"]
+        C["Chainlink数据流<br/>BTC基准价快照"]
+    end
+
+    subgraph 后端服务器["后端 (FastAPI · 端口8000)"]
+        定时器["定时调度器<br/>15分钟分析 · 5分钟结算"]
+        
+        subgraph 接口层["对外接口"]
+            I1["缠论分析接口"]
+            I2["回测统计接口"]
+            I3["PM盘口接口"]
+            I4["实时推送接口"]
+        end
+
+        subgraph 业务层["业务处理"]
+            S1["缠论分析服务"]
+            S2["回测统计服务"]
+            S3["PM数据处理服务"]
+        end
+
+        subgraph 引擎层["缠论计算引擎"]
+            E1["笔识别"] --> E2["中枢构建"]
+            E2 --> E3["背驰检测"]
+            E3 --> E4["趋势判断"]
+            E4 --> E5["价格预测"]
+            E5 --> E6["综合评分"]
+        end
+
+        数据库[("数据库<br/>预测记录存储")]
+    end
+
+    subgraph 前端界面["前端 (React · 端口5173)"]
+        缓存["数据缓存层"]
+        组件1["市场概览"]
+        组件2["K线+缠论图"]
+        组件3["预测表格"]
+        组件4["投注指南"]
+        组件5["回测面板"]
+    end
+
+    B --> S1
+    F --> S1
+    P --> S3
+    C -.->|基准价| P
+    I1 --> S1
+    I2 --> S2
+    I3 --> S3
+    S1 --> 引擎层
+    S2 --> 数据库
+    定时器 -->|每15分钟| S1
+    定时器 -->|每5分钟| S2
+    S1 -->|广播| I4
+    I4 -->|实时推送| 缓存
+    缓存 -->|轮询| 接口层
+    缓存 --> 组件1 & 组件2 & 组件3 & 组件4 & 组件5
+</div>
+
+<hr>
+
+<h2>二、每15分钟 · 缠论分析流程</h2>
+<div class="mermaid">
+flowchart TD
+    开始["⏰ 定时器触发分析"] --> 取数["📡 并行获取4类数据"]
+    取数 --> D1["币安: 168根小时K线"]
+    取数 --> D2["币安: 资金费率"]
+    取数 --> D3["恐惧贪婪指数"]
+    取数 --> D4["币安: 持仓量"]
+    D1 & D2 & D3 & D4 --> 指标["📊 计算技术指标<br/>RSI · MACD · 布林带"]
+    指标 --> 缠论["🔧 缠论引擎"]
+    缠论 --> L1["第1步: 识别笔(顶底分型)"]
+    L1 --> L2["第2步: 构建中枢(3笔重叠)"]
+    L2 --> L3["第3步: 检测背驰(MACD面积)"]
+    L3 --> L4["第4步: 判断趋势(涨/跌/盘整)"]
+    L4 --> L5["第5步: 生成7个级别预测<br/>30分·1时·2时·4时·8时·12时·24时"]
+    L5 --> L6["第6步: 双因子评分 → 综合胜率"]
+    L6 --> 存储["💾 保存到数据库"]
+    L6 --> 推送{"有用户在线?"}
+    推送 -->|是| 广播["📡 推送到前端(实时更新)"]
+    推送 -->|否| 跳过["跳过推送"]
+</div>
+
+<hr>
+
+<h2>三、Polymarket盘口数据流</h2>
+<div class="mermaid">
+flowchart TD
+    请求["用户打开页面 → 请求PM数据"] --> 生成["生成5个时间框架查询"]
+    生成 --> T1["15分钟市场"]
+    生成 --> T2["1小时市场"]
+    生成 --> T3["4小时市场"]
+    生成 --> T4["日线市场"]
+    生成 --> T5["周线市场"]
+    T1 & T2 & T3 & T4 & T5 --> 查询["向Polymarket API查询盘口"]
+    查询 --> 解析["解析返回数据"]
+    解析 --> P1["提取 涨/跌概率"]
+    解析 --> P2["提取 开盘基准价<br/>(Chainlink BTC快照)"]
+    请求 --> 缠论["获取缠论预测结果"]
+    P1 & P2 & 缠论 --> 合并["合并生成投注指南"]
+    合并 --> R1["开盘基准价(来自Chainlink)"]
+    合并 --> R2["当前偏移幅度"]
+    合并 --> R3["操作建议: 看涨买入/看跌买入/观望"]
+    R1 & R2 & R3 --> 返回["返回给前端展示"]
+</div>
+
+<hr>
+
+<h2>四、前端页面 · 数据来源</h2>
+<div class="mermaid">
+flowchart LR
+    subgraph 数据获取方式
+        WS["实时推送<br/>(有新分析立即收到)"]
+        H1["轮询: 每15分钟<br/>缠论分析数据"]
+        H2["轮询: 每5分钟<br/>PM盘口数据"]
+        H3["轮询: 每1分钟<br/>回测统计数据"]
+    end
+
+    WS & H1 & H2 & H3 --> 缓存["数据缓存"]
+
+    缓存 --> C1["市场概览<br/>BTC价格·趋势·RSI·恐惧贪婪"]
+    缓存 --> C2["K线图<br/>蜡烛图 + 缠论笔 + 中枢区间"]
+    缓存 --> C3["预测表格<br/>7级别预测 + PM盘口 + PM信号"]
+    缓存 --> C4["投注指南<br/>基准价·偏移·概率·操作建议"]
+    缓存 --> C5["回测面板<br/>胜率·精度·历史趋势"]
+</div>
+
+<hr>
+
+<h2>五、自动结算流程 · 每5分钟</h2>
+<div class="mermaid">
+flowchart LR
+    A["⏰ 定时触发"] --> B["查找已到期的预测"]
+    B --> C["获取BTC当前价格"]
+    C --> D["逐条对比"]
+    D --> E1["误差≤0.5% → 精准命中"]
+    D --> E2["误差≤1.5% → 接近命中"]
+    D --> E3["方向正确 → 命中"]
+    D --> E4["都不满足 → 未命中"]
+    E1 & E2 & E3 & E4 --> F["写回数据库 · 更新统计"]
+</div>
+
+</body>
+</html>

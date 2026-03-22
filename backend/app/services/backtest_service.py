@@ -14,7 +14,7 @@ from app.clients.binance_client import get_binance_client
 
 # Timeframe → minutes
 TF_MINUTES = {
-    "30m": 30, "1h": 60, "2h": 120, "4h": 240,
+    "5m": 5, "30m": 30, "1h": 60, "2h": 120, "4h": 240,
     "8h": 480, "12h": 720, "24h": 1440,
 }
 

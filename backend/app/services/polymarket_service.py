@@ -22,7 +22,7 @@ MONTH_NAMES = [
 ]
 
 TIMEFRAME_LABELS = {
-    "15M": "15 分钟", "1H": "1 小时", "4H": "4 小时",
+    "5M": "5 分钟", "15M": "15 分钟", "1H": "1 小时", "4H": "4 小时",
     "Daily": "日线", "Weekly": "周线",
 }
 
@@ -43,6 +43,7 @@ class PolymarketService:
 
         # Fetch all timeframes in parallel
         tasks = {
+            "5M": self._fetch_5m(et),
             "15M": self._fetch_15m(et),
             "1H": self._fetch_1h(et),
             "4H": self._fetch_4h(et),
@@ -60,7 +61,7 @@ class PolymarketService:
                 results[name] = None
 
         order = 0
-        for tf_name in ["15M", "1H", "4H", "Daily", "Weekly"]:
+        for tf_name in ["5M", "15M", "1H", "4H", "Daily", "Weekly"]:
             data = results.get(tf_name)
             if data:
                 data["order"] = order
@@ -124,6 +125,7 @@ class PolymarketService:
 
         # Map Polymarket timeframes to Chanlun prediction timeframes
         tf_mapping = {
+            "5M": "5m",
             "15M": "30m",   # closest match
             "1H": "1h",
             "4H": "4h",
@@ -336,6 +338,14 @@ class PolymarketService:
         return guides
 
     # ── Timeframe fetchers ──
+
+    async def _fetch_5m(self, et: dict) -> Optional[dict]:
+        slugs = _gen_5m_slugs(et)
+        for s in slugs:
+            data = await self._process_updown_event(s["slug"])
+            if data and data.get("upProb") is not None:
+                return self._build_updown_tf(data)
+        return None
 
     async def _fetch_15m(self, et: dict) -> Optional[dict]:
         slugs = _gen_15m_slugs(et)
@@ -627,6 +637,24 @@ def _get_et_now() -> dict:
         "hour": et.hour, "minute": et.minute,
         "now_sec": now_utc.timestamp(),
     }
+
+
+def _gen_5m_slugs(et: dict) -> list[dict]:
+    min5 = (et["minute"] // 5) * 5
+    slugs = []
+    for offset in range(2):
+        start_min = min5 + offset * 5
+        hour = et["hour"]
+        day = et["day"]
+        if start_min >= 60:
+            start_min -= 60
+            hour += 1
+            if hour >= 24:
+                hour = 0
+                day += 1
+        ts = _et_to_unix(et["year"], et["month"], day, hour, start_min)
+        slugs.append({"slug": f"btc-updown-5m-{round(ts)}"})
+    return slugs
 
 
 def _gen_15m_slugs(et: dict) -> list[dict]:
