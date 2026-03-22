@@ -155,11 +155,13 @@ class PolymarketService:
                 except Exception:
                     pass
 
-            # Determine base price (Polymarket implied or current)
+            # Determine base price:
+            # Priority: Polymarket priceToBeat > impliedPrice > currentPrice
             up_prob = tf_data.get("upProb")
             down_prob = tf_data.get("downProb")
             implied_price = tf_data.get("impliedPrice")
-            base_price = implied_price or current_price
+            price_to_beat = tf_data.get("priceToBeat")
+            base_price = price_to_beat or implied_price or current_price
 
             is_updown = up_prob is not None
             market_up_prob = round(up_prob * 100, 1) if up_prob is not None else None
@@ -409,7 +411,6 @@ class PolymarketService:
     async def _process_updown_event(self, slug: str) -> Optional[dict]:
         event = await self._fetch_event_by_slug(slug)
         if not event:
-            logger.info(f"[PM DEBUG] _process_updown: no event for {slug}")
             return None
 
         now_sec = datetime.now(timezone.utc).timestamp()
@@ -460,6 +461,22 @@ class PolymarketService:
             except (ValueError, TypeError):
                 pass
 
+        # Extract priceToBeat from eventMetadata (Chainlink BTC/USD snapshot)
+        price_to_beat = None
+        event_metadata = event.get("eventMetadata")
+        if isinstance(event_metadata, str):
+            try:
+                event_metadata = json.loads(event_metadata)
+            except (json.JSONDecodeError, TypeError):
+                event_metadata = {}
+        if isinstance(event_metadata, dict):
+            ptb = event_metadata.get("priceToBeat")
+            if ptb is not None:
+                try:
+                    price_to_beat = round(float(ptb), 2)
+                except (ValueError, TypeError):
+                    pass
+
         return {
             "eventSlug": event.get("slug", slug),
             "title": event.get("title", ""),
@@ -467,6 +484,7 @@ class PolymarketService:
             "hoursLeft": round((end_ts - now_sec) / 3600, 2) if end_ts else 0,
             "upProb": round(up_prob, 4) if up_prob is not None else None,
             "downProb": round(down_prob, 4) if down_prob is not None else None,
+            "priceToBeat": price_to_beat,
             "volume": event.get("volume", 0),
             "link": f"https://polymarket.com/event/{event.get('slug', slug)}",
         }
@@ -561,6 +579,7 @@ class PolymarketService:
             "downProb": data.get("downProb"),
             "upProbPct": round(data["upProb"] * 100, 2) if data.get("upProb") is not None else None,
             "downProbPct": round(data["downProb"] * 100, 2) if data.get("downProb") is not None else None,
+            "priceToBeat": data.get("priceToBeat"),
             "upDownEventSlug": data.get("eventSlug"),
             "upDownTitle": data.get("title"),
             "upDownLink": data.get("link"),
@@ -581,6 +600,7 @@ class PolymarketService:
             "downProb": ud.get("downProb") if ud else None,
             "upProbPct": round(ud["upProb"] * 100, 2) if ud and ud.get("upProb") is not None else None,
             "downProbPct": round(ud["downProb"] * 100, 2) if ud and ud.get("downProb") is not None else None,
+            "priceToBeat": ud.get("priceToBeat") if ud else None,
             "upDownEventSlug": ud.get("eventSlug") if ud else None,
             "upDownTitle": ud.get("title") if ud else None,
             "upDownLink": ud.get("link") if ud else None,
