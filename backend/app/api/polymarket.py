@@ -3,7 +3,10 @@ Polymarket prices API routes — full implementation.
 Matches Express: GET /api/polymarket-prices/prices
 """
 
+import logging
 from fastapi import APIRouter
+
+logger = logging.getLogger(__name__)
 
 from app.services.polymarket_service import PolymarketService
 
@@ -19,4 +22,5 @@ async def get_prices():
         result = await _service.get_prices()
         return result
     except Exception as e:
+        logger.exception("Failed to get polymarket prices")
         return {"error": str(e), "timeframes": [], "events": [], "timestamp": ""}

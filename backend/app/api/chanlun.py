@@ -6,7 +6,10 @@ Matches Express endpoints:
 """
 
 import json
+import logging
 from fastapi import APIRouter
+
+logger = logging.getLogger(__name__)
 
 from app.services.chanlun_service import ChanlunService
 from app.clients.binance_client import get_binance_client
@@ -23,6 +26,7 @@ async def get_analysis():
         result = await _service.full_analysis(symbol="BTC")
         return result
     except Exception as e:
+        logger.exception("Chanlun analysis failed")
         return {"error": str(e), "predictions": [], "chanlun": {}}
 
 
@@ -70,11 +74,5 @@ async def validate_predictions(predictions: str = "[]"):
             "validations": validations,
         }
     except Exception as e:
+        logger.exception("Prediction validation failed")
         return {"error": str(e), "validations": []}
-
-
-@router.post("/betting-guide")
-async def get_betting_guide():
-    """Generate Polymarket betting guide based on Chanlun trend."""
-    # TODO Phase 3: Implement with Polymarket integration
-    return {"status": "not_implemented"}
