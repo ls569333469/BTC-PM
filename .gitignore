@@ -1,0 +1,65 @@
+# ══════════════════════════════════════
+# BTC Chanlun Analyzer — .gitignore
+# ══════════════════════════════════════
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# ── Virtual Environment ──
+.venv/
+venv/
+env/
+
+# ── Environment Variables (SENSITIVE) ──
+.env
+.env.local
+.env.production
+*.env
+
+# ── Database ──
+*.db
+*.sqlite3
+chanlun.db
+
+# ── Node.js / Frontend ──
+node_modules/
+frontend/dist/
+frontend/.vite/
+.pnpm-store/
+
+# ── IDE / Editor ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Testing ──
+.pytest_cache/
+htmlcov/
+.coverage
+*.cover
+
+# ── Antigravity / AI tooling ──
+.antigravity/
+.gemini/
+
+# ── Old VIBE outputs (not needed in repo) ──
+outputs/
+
+# ── Reference / Training docs (not project source) ──
+skills_chinese/
+设计文档/
+
+# ── OS ──
+*.log
+*.tmp

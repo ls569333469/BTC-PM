@@ -1,0 +1,49 @@
+# ── BTC Chanlun Analyzer — systemd Service ──
+# Deploy to: /etc/systemd/system/chanlun.service
+#
+# Usage:
+#   sudo systemctl enable chanlun
+#   sudo systemctl start chanlun
+#   sudo systemctl status chanlun
+#   journalctl -u chanlun -f
+
+[Unit]
+Description=BTC Chanlun Analyzer — FastAPI Backend
+Documentation=https://github.com/your-repo
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/chanlun/backend
+EnvironmentFile=/var/www/chanlun/backend/.env
+
+ExecStart=/var/www/chanlun/backend/.venv/bin/python -m uvicorn \
+    app.main:app \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --workers 2 \
+    --log-level info
+
+# Auto-restart on failure
+Restart=always
+RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/chanlun/backend
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=chanlun
+
+[Install]
+WantedBy=multi-user.target
