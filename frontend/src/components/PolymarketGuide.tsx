@@ -67,7 +67,7 @@ export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGui
               {/* Card header */}
               <button
                 onClick={() => setExpandedTf(isExpanded ? null : guide.timeframe)}
-                className="w-full text-left p-3 hover:bg-[var(--bg-subtle)] transition-colors rounded-t"
+                className="w-full text-left p-3.5 hover:bg-[var(--bg-subtle)] transition-colors rounded-t"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">

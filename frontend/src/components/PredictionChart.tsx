@@ -31,7 +31,7 @@ export function PredictionChart({ predictions }: PredictionChartProps) {
       animation: true,
       animationDuration: 300,
       animationEasing: "cubicOut" as const,
-      color: ["#EA75B2", "#10B981", "#EF4444", "#6366F1"],
+      color: ["#EA75B2", "#14B8A6", "#F97316", "#6366F1"],
       tooltip: {
         trigger: "axis" as const,
         backgroundColor: tooltipBg,

@@ -24,7 +24,7 @@ export function WinRateChart({ predictions }: WinRateChartProps) {
     const tfs = predictions.map((p) => p.timeframe.toUpperCase());
     const winRates = predictions.map((p) => p.winRate);
     const barColors = predictions.map((p) =>
-      p.winRate >= 65 ? "#10B981" : p.winRate >= 55 ? "#F59E0B" : "#EF4444"
+      p.winRate >= 65 ? "#10B981" : p.winRate >= 50 ? "#F59E0B" : "#EF4444"
     );
 
     return {
