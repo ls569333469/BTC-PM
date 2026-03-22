@@ -4,12 +4,17 @@ Port from polymarket-prices.js (521 lines) to Python.
 """
 
 import asyncio
+import httpx
+import json
+import logging
 import re
 from datetime import datetime, timezone
 from typing import Optional
 from zoneinfo import ZoneInfo
 
 from app.clients.polymarket_client import get_polymarket_client
+
+logger = logging.getLogger(__name__)
 
 MONTH_NAMES = [
     "", "january", "february", "march", "april", "may", "june",
@@ -49,7 +54,9 @@ class PolymarketService:
         for name, coro in tasks.items():
             try:
                 results[name] = await coro
-            except Exception:
+                logger.info(f"[PM DEBUG] {name} -> {results[name] is not None}")
+            except Exception as exc:
+                logger.error(f"[PM DEBUG] {name} EXCEPTION: {exc}")
                 results[name] = None
 
         order = 0
@@ -306,7 +313,7 @@ class PolymarketService:
                 "action": action,
                 "winRate": win_rate,
                 "currentPrice": round(current_price, 2),
-                "basePrice": round(predicted_price, 2),
+                "basePrice": round(current_price, 2),
                 "predictedPrice": round(predicted_price, 2),
                 "predictedDelta": round(predicted_delta, 2),
                 "predictedDeltaPct": round(predicted_delta_pct, 2),
@@ -402,6 +409,7 @@ class PolymarketService:
     async def _process_updown_event(self, slug: str) -> Optional[dict]:
         event = await self._fetch_event_by_slug(slug)
         if not event:
+            logger.info(f"[PM DEBUG] _process_updown: no event for {slug}")
             return None
 
         now_sec = datetime.now(timezone.utc).timestamp()
@@ -428,9 +436,20 @@ class PolymarketService:
         # Extract probabilities from outcomes
         outcomes = market.get("outcomes", [])
         outcome_prices = market.get("outcomePrices", [])
+        # Gamma API may return these as JSON strings
+        if isinstance(outcomes, str):
+            try:
+                outcomes = json.loads(outcomes)
+            except (json.JSONDecodeError, TypeError):
+                outcomes = []
+        if isinstance(outcome_prices, str):
+            try:
+                outcome_prices = json.loads(outcome_prices)
+            except (json.JSONDecodeError, TypeError):
+                outcome_prices = []
         if outcomes and outcome_prices:
             try:
-                prices = [float(p) for p in outcome_prices] if isinstance(outcome_prices, list) else []
+                prices = [float(p) for p in outcome_prices]
                 for i, outcome in enumerate(outcomes):
                     if i < len(prices):
                         name = outcome.lower() if isinstance(outcome, str) else ""
@@ -467,6 +486,17 @@ class PolymarketService:
             # Extract yes/no prices
             outcomes = m.get("outcomes", [])
             prices = m.get("outcomePrices", [])
+            # Gamma API may return these as JSON strings
+            if isinstance(outcomes, str):
+                try:
+                    outcomes = json.loads(outcomes)
+                except (json.JSONDecodeError, TypeError):
+                    outcomes = []
+            if isinstance(prices, str):
+                try:
+                    prices = json.loads(prices)
+                except (json.JSONDecodeError, TypeError):
+                    prices = []
             yes_price = 0.5
             no_price = 0.5
             if outcomes and prices:
@@ -505,14 +535,20 @@ class PolymarketService:
         }
 
     async def _fetch_event_by_slug(self, slug: str) -> Optional[dict]:
+        """Fetch event by slug using direct httpx request for reliability."""
         try:
-            events = await self.client.search_events(query=slug, limit=1)
-            if events:
-                return events[0]
-            # Try direct slug lookup
-            event = await self.client.get_event_by_slug(slug)
-            return event
-        except Exception:
+            async with httpx.AsyncClient(timeout=15.0) as c:
+                resp = await c.get(
+                    f"{self.client.base_url}/events",
+                    params={"slug": slug},
+                )
+                resp.raise_for_status()
+                events = resp.json()
+                if events:
+                    return events[0]
+            return None
+        except Exception as exc:
+            logger.warning(f"Polymarket slug lookup failed: {slug} - {exc}")
             return None
 
     # ── Response builders ──
