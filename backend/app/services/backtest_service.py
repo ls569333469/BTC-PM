@@ -1,6 +1,6 @@
 """
 Backtest Service — save predictions, resolve expired ones, aggregate stats.
-Port from backtest.js (303 lines) to Python with SQLAlchemy async.
+Supports 3 independent backtest tracks: 缠论 / 6因子 / 综合操作.
 """
 
 from datetime import datetime, timedelta, timezone
@@ -22,7 +22,7 @@ TF_MINUTES = {
 def grade_accuracy(pred_direction: str, pred_current_price: float,
                    pred_target_price: float, actual_price: float) -> dict:
     """
-    Grade a resolved prediction. Port of gradeAccuracy() from JS.
+    Grade a resolved prediction.
     """
     actual_diff = actual_price - pred_current_price
     actual_diff_pct = (actual_diff / pred_current_price * 100) if pred_current_price > 0 else 0
@@ -52,8 +52,31 @@ def grade_accuracy(pred_direction: str, pred_current_price: float,
     }
 
 
+def grade_factor_direction(factor_direction: str, actual_diff: float) -> bool:
+    """因子方向是否正确: 因子说up→涨了？因子说down→跌了？"""
+    if factor_direction == "neutral":
+        return abs(actual_diff) < 50  # 因子说中性，实际波动很小算对
+    return (
+        (factor_direction == "up" and actual_diff > 0) or
+        (factor_direction == "down" and actual_diff < 0)
+    )
+
+
+def grade_composite_action(pm_action: str, actual_diff: float) -> bool:
+    """综合操作建议是否正确:
+    看涨买入→涨了=对, 看跌买入→跌了=对, 观望→波动大=错/波动小=对
+    """
+    if pm_action == "看涨买入":
+        return actual_diff > 0
+    elif pm_action == "看跌买入":
+        return actual_diff < 0
+    elif pm_action == "观望":
+        return abs(actual_diff) < 200  # 观望时波动<$200算对（避开了大波动）
+    return False
+
+
 class BacktestService:
-    """Handles prediction persistence and resolution."""
+    """Handles prediction persistence and resolution with 3-track backtesting."""
 
     def __init__(self):
         self.binance = get_binance_client()
@@ -61,7 +84,7 @@ class BacktestService:
     async def save_predictions(self, db: AsyncSession, data: dict) -> dict:
         """
         Save a batch of predictions to the database.
-        Port of POST /api/backtest/save.
+        Now saves 3 independent scores + directions.
         """
         predictions = data.get("predictions", [])
         guides = data.get("guides", [])
@@ -94,9 +117,17 @@ class BacktestService:
                 "direction": pred["direction"],
                 "target_price": pred["targetPrice"],
                 "current_price": pred.get("currentPrice", 0),
-                "win_rate": pred.get("winRate", 50),
+                "win_rate": pred.get("compositeWinRate", pred.get("winRate", 50)),
                 "weight_class": pred.get("weightClass"),
                 "factor_scores": pred.get("factorScores"),
+                # 3个独立评分
+                "chanlun_win_rate": pred.get("chanlunWinRate"),
+                "chanlun_direction": pred.get("chanlunDirection"),
+                "factor_win_rate": pred.get("factorWinRate"),
+                "factor_direction": pred.get("factorDirection"),
+                "composite_win_rate": pred.get("compositeWinRate"),
+                "composite_direction": pred.get("compositeDirection"),
+                # PM data
                 "pm_action": guide.get("action") if guide else None,
                 "pm_above_prob": guide.get("aboveProb") if guide else None,
                 "pm_base_price": guide.get("basePrice") if guide else None,
@@ -117,7 +148,7 @@ class BacktestService:
                 if result.rowcount > 0:
                     saved += 1
                 else:
-                    skipped += 1  # Duplicate, silently skipped
+                    skipped += 1
             except Exception:
                 skipped += 1
 
@@ -125,10 +156,8 @@ class BacktestService:
 
     async def resolve_predictions(self, db: AsyncSession) -> dict:
         """
-        Resolve all expired pending predictions using current BTC price.
-        Port of POST /api/backtest/resolve.
+        Resolve all expired pending predictions with 3-track grading.
         """
-        # Get current BTC price
         try:
             current_price = await self.binance.get_ticker_price("BTCUSDT")
         except Exception as e:
@@ -137,7 +166,6 @@ class BacktestService:
         if current_price <= 0:
             return {"error": "Invalid current price", "resolved": 0, "results": []}
 
-        # Find all unresolved predictions whose window has expired
         now = datetime.now(timezone.utc)
         stmt = (
             select(PredictionRecord)
@@ -156,6 +184,9 @@ class BacktestService:
         results = []
 
         for record in pending:
+            actual_diff = current_price - record.current_price
+
+            # Track 1: 缠论判定（方向+价格精度）
             grading = grade_accuracy(
                 record.direction, record.current_price,
                 record.target_price, current_price,
@@ -167,6 +198,20 @@ class BacktestService:
             record.accuracy_grade = grading["grade"]
             record.target_error_pct = grading["target_error_pct"]
 
+            # Track 2: 因子方向判定
+            f_dir = record.factor_direction
+            if f_dir:
+                record.factor_direction_correct = grade_factor_direction(f_dir, actual_diff)
+            else:
+                record.factor_direction_correct = None
+
+            # Track 3: 综合操作判定
+            action = record.pm_action
+            if action:
+                record.composite_action_correct = grade_composite_action(action, actual_diff)
+            else:
+                record.composite_action_correct = None
+
             resolved += 1
             results.append({
                 "id": record.id,
@@ -174,6 +219,8 @@ class BacktestService:
                 "direction": record.direction,
                 "grade": grading["grade"],
                 "direction_correct": grading["direction_correct"],
+                "factor_direction_correct": record.factor_direction_correct,
+                "composite_action_correct": record.composite_action_correct,
                 "target_error_pct": grading["target_error_pct"],
             })
 
@@ -185,15 +232,20 @@ class BacktestService:
 
     async def get_stats(self, db: AsyncSession) -> dict:
         """
-        Aggregated backtest statistics.
-        Port of GET /api/backtest/stats (raw SQL → SQLAlchemy).
+        Aggregated backtest statistics with 3 independent tracks.
         """
         # Overall stats
         overall_stmt = select(
             func.count(PredictionRecord.id).label("total"),
             func.count(PredictionRecord.id).filter(PredictionRecord.resolved == True).label("resolved"),
             func.count(PredictionRecord.id).filter(PredictionRecord.resolved == False).label("pending"),
-            func.count(PredictionRecord.id).filter(PredictionRecord.direction_correct == True).label("hits"),
+            # Track 1: 缠论
+            func.count(PredictionRecord.id).filter(PredictionRecord.direction_correct == True).label("chanlun_hits"),
+            # Track 2: 因子
+            func.count(PredictionRecord.id).filter(PredictionRecord.factor_direction_correct == True).label("factor_hits"),
+            # Track 3: 综合操作
+            func.count(PredictionRecord.id).filter(PredictionRecord.composite_action_correct == True).label("composite_hits"),
+            # Grades
             func.count(PredictionRecord.id).filter(PredictionRecord.accuracy_grade == "EXACT").label("exact_count"),
             func.count(PredictionRecord.id).filter(PredictionRecord.accuracy_grade == "CLOSE").label("close_count"),
             func.count(PredictionRecord.id).filter(PredictionRecord.accuracy_grade == "HIT").label("hit_count"),
@@ -205,9 +257,12 @@ class BacktestService:
 
         total = row.total or 0
         resolved_count = row.resolved or 0
-        hits = row.hits or 0
-        hit_rate = round((hits / resolved_count * 100), 1) if resolved_count > 0 else 0
-        avg_error = round(float(row.avg_error_pct or 0), 2)
+        chanlun_hits = row.chanlun_hits or 0
+        factor_hits = row.factor_hits or 0
+        composite_hits = row.composite_hits or 0
+
+        def rate(hits, total):
+            return round((hits / total * 100), 1) if total > 0 else 0
 
         # By timeframe
         by_tf_stmt = (
@@ -215,7 +270,9 @@ class BacktestService:
                 PredictionRecord.timeframe,
                 func.count(PredictionRecord.id).label("total"),
                 func.count(PredictionRecord.id).filter(PredictionRecord.resolved == True).label("resolved"),
-                func.count(PredictionRecord.id).filter(PredictionRecord.direction_correct == True).label("hits"),
+                func.count(PredictionRecord.id).filter(PredictionRecord.direction_correct == True).label("chanlun_hits"),
+                func.count(PredictionRecord.id).filter(PredictionRecord.factor_direction_correct == True).label("factor_hits"),
+                func.count(PredictionRecord.id).filter(PredictionRecord.composite_action_correct == True).label("composite_hits"),
                 func.avg(PredictionRecord.target_error_pct).filter(PredictionRecord.resolved == True).label("avg_error"),
             )
             .group_by(PredictionRecord.timeframe)
@@ -224,16 +281,17 @@ class BacktestService:
         by_timeframe = []
         for tf_row in tf_result.all():
             tf_resolved = tf_row.resolved or 0
-            tf_hits = tf_row.hits or 0
             by_timeframe.append({
                 "timeframe": tf_row.timeframe,
                 "total": tf_row.total,
-                "hit_rate": round((tf_hits / tf_resolved * 100), 1) if tf_resolved > 0 else 0,
+                "chanlun_hit_rate": rate(tf_row.chanlun_hits or 0, tf_resolved),
+                "factor_hit_rate": rate(tf_row.factor_hits or 0, tf_resolved),
+                "composite_hit_rate": rate(tf_row.composite_hits or 0, tf_resolved),
                 "avg_error": round(float(tf_row.avg_error or 0), 2),
             })
 
-        # Sort timeframes
-        tf_order = {"30m": 1, "1h": 2, "2h": 3, "4h": 4, "8h": 5, "12h": 6, "24h": 7}
+        # Sort timeframes (fix: add 5m)
+        tf_order = {"5m": 0, "30m": 1, "1h": 2, "2h": 3, "4h": 4, "8h": 5, "12h": 6, "24h": 7}
         by_timeframe.sort(key=lambda x: tf_order.get(x["timeframe"], 8))
 
         # By direction
@@ -242,7 +300,8 @@ class BacktestService:
                 PredictionRecord.direction,
                 func.count(PredictionRecord.id).label("total"),
                 func.count(PredictionRecord.id).filter(PredictionRecord.resolved == True).label("resolved"),
-                func.count(PredictionRecord.id).filter(PredictionRecord.direction_correct == True).label("hits"),
+                func.count(PredictionRecord.id).filter(PredictionRecord.direction_correct == True).label("chanlun_hits"),
+                func.count(PredictionRecord.id).filter(PredictionRecord.factor_direction_correct == True).label("factor_hits"),
             )
             .group_by(PredictionRecord.direction)
         )
@@ -250,11 +309,11 @@ class BacktestService:
         by_direction = []
         for d_row in dir_result.all():
             d_resolved = d_row.resolved or 0
-            d_hits = d_row.hits or 0
             by_direction.append({
                 "direction": d_row.direction,
                 "total": d_row.total,
-                "hit_rate": round((d_hits / d_resolved * 100), 1) if d_resolved > 0 else 0,
+                "chanlun_hit_rate": rate(d_row.chanlun_hits or 0, d_resolved),
+                "factor_hit_rate": rate(d_row.factor_hits or 0, d_resolved),
             })
 
         # Recent resolved predictions (last 20)
@@ -274,17 +333,22 @@ class BacktestService:
                 "actual_price": r.actual_price,
                 "accuracy_grade": r.accuracy_grade,
                 "target_error_pct": r.target_error_pct,
+                "chanlun_correct": r.direction_correct,
+                "factor_correct": r.factor_direction_correct,
+                "composite_correct": r.composite_action_correct,
             }
             for r in recent_result.scalars().all()
         ]
 
-        # Daily trend (last 7 days) — port of JS trendResult query
+        # Daily trend (last 7 days)
         seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
         trend_stmt = (
             select(
                 cast(PredictionRecord.prediction_time, Date).label("date"),
                 func.count(PredictionRecord.id).filter(PredictionRecord.resolved == True).label("sample_size"),
-                func.count(PredictionRecord.id).filter(PredictionRecord.direction_correct == True).label("hits"),
+                func.count(PredictionRecord.id).filter(PredictionRecord.direction_correct == True).label("chanlun_hits"),
+                func.count(PredictionRecord.id).filter(PredictionRecord.factor_direction_correct == True).label("factor_hits"),
+                func.count(PredictionRecord.id).filter(PredictionRecord.composite_action_correct == True).label("composite_hits"),
             )
             .where(PredictionRecord.prediction_time >= seven_days_ago)
             .group_by(cast(PredictionRecord.prediction_time, Date))
@@ -295,8 +359,9 @@ class BacktestService:
             {
                 "date": str(t_row.date),
                 "sample_size": t_row.sample_size or 0,
-                "hits": t_row.hits or 0,
-                "hit_rate": round((t_row.hits / t_row.sample_size * 100), 1) if (t_row.sample_size or 0) > 0 else 0,
+                "chanlun_hit_rate": rate(t_row.chanlun_hits or 0, t_row.sample_size or 0),
+                "factor_hit_rate": rate(t_row.factor_hits or 0, t_row.sample_size or 0),
+                "composite_hit_rate": rate(t_row.composite_hits or 0, t_row.sample_size or 0),
             }
             for t_row in trend_result.all()
         ]
@@ -306,11 +371,12 @@ class BacktestService:
                 "total": total,
                 "resolved": resolved_count,
                 "pending": row.pending or 0,
-                "hits": hits,
-                "hit_rate": hit_rate,
+                "chanlunHitRate": rate(chanlun_hits, resolved_count),
+                "factorHitRate": rate(factor_hits, resolved_count),
+                "compositeHitRate": rate(composite_hits, resolved_count),
                 "exact_count": row.exact_count or 0,
                 "close_count": row.close_count or 0,
-                "avg_error_pct": avg_error,
+                "avg_error_pct": round(float(row.avg_error_pct or 0), 2),
             },
             "byTimeframe": {tf["timeframe"]: tf for tf in by_timeframe},
             "byDirection": {d["direction"]: d for d in by_direction},

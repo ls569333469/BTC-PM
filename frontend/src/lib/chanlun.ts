@@ -9,10 +9,19 @@ export interface Prediction {
   priceChange: number;
   priceChangePct: number;
   winRate: number;
+  chanlunWinRate: number;
+  factorWinRate: number;
+  compositeWinRate: number;
+  chanlunDirection: string;
+  factorDirection: string;
+  compositeDirection: string;
+  scoreLevel?: string;
+  scoreDesc?: string;
   support: number;
   resistance: number;
   triggers: string[];
   confidence: "high" | "medium" | "low";
+  engineUsed?: string;
 }
 
 export interface BiPoint {
@@ -53,9 +62,9 @@ export interface ChanlunAnalysis {
       long_short_ratio: number;
       volume_24h: number;
     } | null;
-    fearGreed: number | null;
-    options: Record<string, unknown> | null;
-    liquidation: unknown[] | null;
+    fearGreed?: number | null;  // deprecated: 已替换为MFI
+    options?: Record<string, unknown> | null;
+    liquidation?: unknown[] | null;
   };
   predictions: Prediction[];
   priceHistory: { time: string; price: number }[];
@@ -173,6 +182,12 @@ export interface BettingGuide {
   timeframeLabel: string;
   action: string;
   winRate: number;
+  chanlunWinRate: number;
+  factorWinRate: number;
+  compositeWinRate: number;
+  scoreLevel: string;
+  scoreDesc: string;
+  dirStatus: string;
   currentPrice: number;
   basePrice: number;
   predictedPrice: number;

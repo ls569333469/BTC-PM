@@ -38,7 +38,7 @@ export default function App() {
     data: validation,
   } = useChanlunValidation(prevPredictions ?? undefined);
 
-  const { data: backtestStats } = useBacktestStats(60 * 1000);
+  const { data: backtestStats } = useBacktestStats(5 * 60 * 1000);
   const { data: polymarketData } = usePolymarketPrices(5 * 60 * 1000);
 
   // WebSocket — real-time push from APScheduler

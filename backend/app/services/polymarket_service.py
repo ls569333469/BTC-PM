@@ -169,52 +169,69 @@ class PolymarketService:
             market_up_prob = round(up_prob * 100, 1) if up_prob is not None else None
             market_down_prob = round(down_prob * 100, 1) if down_prob is not None else None
 
-            # Compute above-probability from Chanlun prediction
+            # 3个独立评分
+            chanlun_win_rate = pred.get("chanlunWinRate", pred.get("winRate", 50))
+            factor_win_rate = pred.get("factorWinRate", 50)
+            composite_win_rate = pred.get("compositeWinRate", chanlun_win_rate)
+            composite_direction = pred.get("compositeDirection", pred.get("direction", "sideways"))
+
+            # aboveProb 简化 (2D): 预测价 vs 基准价 直接映射
             predicted_delta = predicted_price - base_price
             predicted_delta_pct = (predicted_delta / base_price * 100) if base_price else 0
 
-            # Chanlun's "above probability" — how likely price goes above base
-            win_rate = pred.get("winRate", 50)
-            direction = pred.get("direction", "sideways")
-            if direction == "up":
-                above_prob = max(55, min(85, 50 + win_rate * 0.3 + predicted_delta_pct * 2))
-            elif direction == "down":
-                above_prob = max(15, min(45, 50 - win_rate * 0.3 + predicted_delta_pct * 2))
+            if abs(predicted_delta_pct) < 0.1:
+                above_prob = 50.0  # 预测价≈基准价，不确定
+            elif predicted_delta > 0:
+                above_prob = float(composite_win_rate)  # 预测涨→aboveProb=composite
             else:
-                above_prob = 50 + predicted_delta_pct * 1.5
-            above_prob = round(max(10, min(90, above_prob)), 1)
+                above_prob = float(100 - composite_win_rate)  # 预测跌→aboveProb低
+            above_prob = round(max(5, min(95, above_prob)), 1)
 
-            # Determine action
-            if above_prob >= 60 and direction == "up":
+            # 操作门槛: 综合评分>=60才操作 (PM是二元结局，弱信号不下注)
+            if composite_win_rate >= 60 and composite_direction == "up":
                 action = "看涨买入"
-            elif above_prob <= 40 and direction == "down":
+            elif composite_win_rate >= 60 and composite_direction == "down":
                 action = "看跌买入"
             else:
                 action = "观望"
 
+            # 评分等级标签 (用于指南详情技术解读)
+            score_level, score_desc = _score_label(composite_win_rate)
+
+            # 方向一致性标注
+            chanlun_dir = pred.get("chanlunDirection", "sideways")
+            factor_dir = pred.get("factorDirection", "neutral")
+            if chanlun_dir == factor_dir and chanlun_dir != "sideways":
+                dir_status = f"缠论+因子同向{chanlun_dir}"
+            elif composite_win_rate == 0 and chanlun_dir != factor_dir:
+                dir_status = f"缠论{chanlun_dir} vs 因子{factor_dir} 矛盾"
+            else:
+                dir_status = f"缠论{chanlun_dir}/因子{factor_dir}"
+
             # Build factors list
             factors = []
+            factors.append(f"综合评分 {composite_win_rate}/100 — {score_level}")
+            factors.append(f"缠论{chanlun_win_rate}分({chanlun_dir}) | 因子{factor_win_rate}分({factor_dir})")
+            factors.append(dir_status)
             if pred.get("triggers"):
-                factors.extend(pred["triggers"][:3])
+                factors.extend(pred["triggers"][:2])
             if market_up_prob is not None:
-                factors.append(f"Polymarket 看涨概率 {market_up_prob}%")
-            if implied_price:
-                factors.append(f"隐含价格 ${implied_price:,}")
+                factors.append(f"PM看涨{market_up_prob}%")
 
             # Build reason
             if action == "看涨买入":
-                reason = f"缠论趋势看涨 (置信度 {win_rate}%)，目标价 ${predicted_price:,.2f} 高于基准价"
+                reason = f"{score_level} — {dir_status}，综合{composite_win_rate}分，目标价 ${predicted_price:,.2f}"
             elif action == "看跌买入":
-                reason = f"缠论趋势看跌 (置信度 {win_rate}%)，目标价 ${predicted_price:,.2f} 低于基准价"
+                reason = f"{score_level} — {dir_status}，综合{composite_win_rate}分，目标价 ${predicted_price:,.2f}"
             else:
-                reason = f"缠论信号中性/不确定，建议观望当前时间框架"
+                reason = f"{score_level} — {score_desc}，{dir_status}"
 
-            # Compute guide win rate (blend of Chanlun + market)
-            guide_win_rate = win_rate
+            # Guide win rate
+            guide_win_rate = composite_win_rate
             if market_up_prob is not None and action == "看涨买入":
-                guide_win_rate = round((win_rate + market_up_prob) / 2)
+                guide_win_rate = round((composite_win_rate + market_up_prob) / 2)
             elif market_down_prob is not None and action == "看跌买入":
-                guide_win_rate = round((win_rate + market_down_prob) / 2)
+                guide_win_rate = round((composite_win_rate + market_down_prob) / 2)
 
             volume = tf_data.get("volume", 0)
             market_count = tf_data.get("marketCount", 0)
@@ -224,6 +241,12 @@ class PolymarketService:
                 "timeframeLabel": TIMEFRAME_LABELS.get(tf_name, tf_name),
                 "action": action,
                 "winRate": guide_win_rate,
+                "chanlunWinRate": chanlun_win_rate,
+                "factorWinRate": factor_win_rate,
+                "compositeWinRate": composite_win_rate,
+                "scoreLevel": score_level,
+                "scoreDesc": score_desc,
+                "dirStatus": dir_status,
                 "currentPrice": round(current_price, 2),
                 "basePrice": round(base_price, 2) if base_price else 0,
                 "predictedPrice": round(predicted_price, 2),
@@ -279,43 +302,66 @@ class PolymarketService:
                 continue
 
             predicted_price = pred.get("targetPrice", current_price)
-            win_rate = pred.get("winRate", 50)
-            direction = pred.get("direction", "sideways")
+            chanlun_win_rate = pred.get("chanlunWinRate", pred.get("winRate", 50))
+            factor_win_rate = pred.get("factorWinRate", 50)
+            composite_win_rate = pred.get("compositeWinRate", chanlun_win_rate)
+            composite_direction = pred.get("compositeDirection", pred.get("direction", "sideways"))
             predicted_delta = predicted_price - current_price
             predicted_delta_pct = (predicted_delta / current_price * 100) if current_price else 0
 
-            # Compute above probability
-            if direction == "up":
-                above_prob = max(55, min(85, 50 + win_rate * 0.3 + predicted_delta_pct * 2))
-            elif direction == "down":
-                above_prob = max(15, min(45, 50 - win_rate * 0.3 + predicted_delta_pct * 2))
+            # aboveProb 简化 (2D)
+            if abs(predicted_delta_pct) < 0.1:
+                above_prob = 50.0
+            elif predicted_delta > 0:
+                above_prob = float(composite_win_rate)
             else:
-                above_prob = 50 + predicted_delta_pct * 1.5
-            above_prob = round(max(10, min(90, above_prob)), 1)
+                above_prob = float(100 - composite_win_rate)
+            above_prob = round(max(5, min(95, above_prob)), 1)
 
-            # Determine action
-            if above_prob >= 60 and direction == "up":
+            # 操作门槛
+            if composite_win_rate >= 60 and composite_direction == "up":
                 action = "看涨买入"
-            elif above_prob <= 40 and direction == "down":
+            elif composite_win_rate >= 60 and composite_direction == "down":
                 action = "看跌买入"
             else:
                 action = "观望"
 
-            # Build reason
-            if action == "看涨买入":
-                reason = f"缠论趋势看涨 (置信度 {win_rate}%)，目标价 ${predicted_price:,.2f} 高于当前价"
-            elif action == "看跌买入":
-                reason = f"缠论趋势看跌 (置信度 {win_rate}%)，目标价 ${predicted_price:,.2f} 低于当前价"
-            else:
-                reason = f"缠论信号中性/不确定，建议观望当前时间框架"
+            score_level, score_desc = _score_label(composite_win_rate)
 
-            factors = pred.get("triggers", [])[:3]
+            chanlun_dir = pred.get("chanlunDirection", "sideways")
+            factor_dir = pred.get("factorDirection", "neutral")
+            if chanlun_dir == factor_dir and chanlun_dir != "sideways":
+                dir_status = f"缠论+因子同向{chanlun_dir}"
+            elif composite_win_rate == 0 and chanlun_dir != factor_dir:
+                dir_status = f"缠论{chanlun_dir} vs 因子{factor_dir} 矛盾"
+            else:
+                dir_status = f"缠论{chanlun_dir}/因子{factor_dir}"
+
+            if action == "看涨买入":
+                reason = f"{score_level} — {dir_status}，综合{composite_win_rate}分，目标价 ${predicted_price:,.2f}"
+            elif action == "看跌买入":
+                reason = f"{score_level} — {dir_status}，综合{composite_win_rate}分，目标价 ${predicted_price:,.2f}"
+            else:
+                reason = f"{score_level} — {score_desc}，{dir_status}"
+
+            factors = []
+            factors.append(f"综合评分 {composite_win_rate}/100 — {score_level}")
+            factors.append(f"缠论{chanlun_win_rate}分({chanlun_dir}) | 因子{factor_win_rate}分({factor_dir})")
+            factors.append(dir_status)
+            if pred.get("triggers"):
+                factors.extend(pred["triggers"][:2])
 
             guides.append({
                 "timeframe": stf["name"],
                 "timeframeLabel": stf["label"],
                 "action": action,
-                "winRate": win_rate,
+                "winRate": composite_win_rate,
+                "chanlunWinRate": chanlun_win_rate,
+                "factorWinRate": factor_win_rate,
+                "compositeWinRate": composite_win_rate,
+                "scoreLevel": score_level,
+                "scoreDesc": score_desc,
+                "dirStatus": dir_status,
                 "currentPrice": round(current_price, 2),
                 "basePrice": round(current_price, 2),
                 "predictedPrice": round(predicted_price, 2),
@@ -624,6 +670,22 @@ class PolymarketService:
             "marketCount": (len(strike.get("strikes", [])) if strike else 0) + (1 if ud else 0),
         }
         return result
+
+
+# ── Score label helper ──
+
+def _score_label(score: int) -> tuple[str, str]:
+    """Return (level, description) for a composite score 0-100."""
+    if score >= 80:
+        return "🔴 极强信号", "所有指标同向，高确信度，可加大仓位"
+    elif score >= 60:
+        return "🟠 强信号", "多数指标同向，信号明确，可正常操作"
+    elif score >= 40:
+        return "🟡 中等信号", "信号有矛盾，确信度不足，不建议操作"
+    elif score >= 20:
+        return "🔵 弱信号", "缠论结构不明朗，方向不确定"
+    else:
+        return "⚪ 无信号", "无明确缠论信号，完全观望"
 
 
 # ── Slug generators (identical logic to JS) ──

@@ -22,10 +22,11 @@ export function WinRateChart({ predictions }: WinRateChartProps) {
     const tooltipBorder = isDark ? "rgba(255,255,255,0.12)" : "rgba(42,42,42,0.08)";
 
     const tfs = predictions.map((p) => p.timeframe.toUpperCase());
-    const winRates = predictions.map((p) => p.winRate);
-    const barColors = predictions.map((p) =>
-      p.winRate >= 65 ? "#10B981" : p.winRate >= 50 ? "#F59E0B" : "#EF4444"
-    );
+    const winRates = predictions.map((p) => p.compositeWinRate ?? p.winRate);
+    const barColors = predictions.map((p) => {
+      const wr = p.compositeWinRate ?? p.winRate;
+      return wr >= 80 ? "#10B981" : wr >= 60 ? "#F59E0B" : "#EF4444";
+    });
 
     return {
       animation: true,
@@ -106,7 +107,7 @@ export function WinRateChart({ predictions }: WinRateChartProps) {
 
   const handleExportCsv = () => {
     const headers = ["Timeframe", "WinRate", "Direction", "Confidence"];
-    const rows = predictions.map((p) => [p.timeframe, p.winRate, p.direction, p.confidence]);
+    const rows = predictions.map((p) => [p.timeframe, p.compositeWinRate ?? p.winRate, p.direction, p.confidence]);
     const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);

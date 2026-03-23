@@ -101,10 +101,10 @@ export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGui
                           </span>
                         </span>
                       </div>
-                      {/* 缠论看涨/看跌概率 */}
+                      {/* 看涨/看跌概率 */}
                       <div className="flex flex-col">
                         <span className="text-[9px] text-[var(--fg-muted)]">
-                          缠论{guide.aboveProb >= 50 ? "看涨" : "看跌"}
+                          {guide.aboveProb >= 50 ? "看涨概率" : "看跌概率"}
                         </span>
                         <span className={`font-mono text-[11px] font-bold ${
                           guide.aboveProb >= 60 ? "text-emerald-500" : guide.aboveProb <= 40 ? "text-red-400" : "text-amber-500"
@@ -112,13 +112,13 @@ export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGui
                           {guide.aboveProb >= 50 ? guide.aboveProb : (100 - guide.aboveProb)}%
                         </span>
                       </div>
-                      {/* 辅助胜率 */}
+                      {/* 综合评分 */}
                       <div className="flex flex-col">
-                        <span className="text-[9px] text-[var(--fg-muted)]">辅助胜率</span>
+                        <span className="text-[9px] text-[var(--fg-muted)]">综合评分</span>
                         <span className={`font-mono text-[11px] font-bold ${
-                          guide.winRate >= 55 ? "text-emerald-500" : guide.winRate >= 45 ? "text-amber-500" : "text-red-400"
+                          (guide.compositeWinRate ?? guide.winRate) >= 80 ? "text-emerald-500" : (guide.compositeWinRate ?? guide.winRate) >= 60 ? "text-amber-500" : "text-red-400"
                         }`}>
-                          {guide.winRate}%
+                          {guide.compositeWinRate ?? guide.winRate}
                         </span>
                       </div>
                       {/* Market probability if available */}
@@ -153,7 +153,7 @@ export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGui
                       </span>
                     </div>
                     <span className="text-[10px] font-mono font-bold text-[var(--fg-base)]">
-                      {guide.winRate}%
+                      {guide.compositeWinRate ?? guide.winRate}
                     </span>
                     {isExpanded ? (
                       <ChevronUp className="h-3.5 w-3.5 text-[var(--fg-muted)]" />

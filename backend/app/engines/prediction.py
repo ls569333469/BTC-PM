@@ -53,34 +53,9 @@ def generate_predictions(
         last_atr = atr[-1] if not np.isnan(atr[-1]) else volatility_base
         volatility_base = float(last_atr) * 0.5  # Scale ATR to 30min equivalent
 
-    # Bias factors (identical to JS)
-    funding_bias = 0.0
-    if funding_rate is not None:
-        if funding_rate > 0.0001:
-            funding_bias = -0.3
-        elif funding_rate < -0.0001:
-            funding_bias = 0.3
-
-    sentiment_bias = 0.0
-    if fear_greed is not None:
-        if fear_greed > 80:
-            sentiment_bias = -0.2
-        elif fear_greed < 20:
-            sentiment_bias = 0.2
-
-    rsi_bias = 0.0
-    rsi = indicators.get("rsi")
-    if rsi is not None:
-        if rsi > 70:
-            rsi_bias = -0.25
-        elif rsi < 30:
-            rsi_bias = 0.25
-
-    div_bias = 0.0
-    if divergence.get("top_div"):
-        div_bias = -0.4
-    if divergence.get("bottom_div"):
-        div_bias = 0.4
+    # ── 纯缠论方向评分 (问题8修复: 移除了非缠论指标污染) ──
+    # funding_rate, fear_greed, RSI, MACD divergence 不再参与缠论评分
+    # 它们只在6因子评分系统中使用
 
     predictions = []
 
@@ -88,23 +63,27 @@ def generate_predictions(
         mult = MULTIPLIERS[tf]
         base_move = volatility_base * mult
 
-        # Direction score: positive = bullish, negative = bearish
+        # 方向评分: 纯缠论结构判断
         dir_score = 0.0
         if trend == "bullish":
             dir_score = 0.6
         elif trend == "bearish":
             dir_score = -0.6
 
-        dir_score += funding_bias + sentiment_bias + rsi_bias + div_bias
+        # 背驰增强 (缠论概念, 保留)
+        if divergence.get("top_div"):
+            dir_score -= 0.3
+        if divergence.get("bottom_div"):
+            dir_score += 0.3
+
         dir_score = max(-1.0, min(1.0, dir_score))
 
         target_price = current_price + (base_move * dir_score)
         direction = "up" if dir_score > 0.1 else ("down" if dir_score < -0.1 else "sideways")
 
-        # Win rate
-        win_rate = 50 + abs(dir_score) * 30
-        win_rate -= (mult - 1) * 1.5
-        win_rate = round(max(35, min(85, win_rate)))
+        # 评分 (0-100分制)
+        win_rate = round(abs(dir_score) * 100)
+        win_rate = max(0, min(100, win_rate))
 
         # Support/Resistance
         support = current_price - base_move * 0.8
@@ -116,7 +95,7 @@ def generate_predictions(
                 resistance = min(resistance, nearest_zs["high"])
 
         # Triggers
-        triggers = _build_triggers(divergence, nearest_zs, current_price, indicators, funding_bias, direction)
+        triggers = _build_triggers(divergence, nearest_zs, current_price, indicators, funding_rate, direction)
 
         predictions.append({
             "timeframe": tf,
@@ -136,7 +115,7 @@ def generate_predictions(
     return predictions
 
 
-def _build_triggers(divergence, nearest_zs, current_price, indicators, funding_bias, direction) -> list[str]:
+def _build_triggers(divergence, nearest_zs, current_price, indicators, funding_rate, direction) -> list[str]:
     """Build human-readable trigger descriptions."""
     triggers = []
 
@@ -158,10 +137,10 @@ def _build_triggers(divergence, nearest_zs, current_price, indicators, funding_b
         elif rsi < 30:
             triggers.append(f"RSI oversold (<{round(rsi)})")
 
-    if abs(funding_bias) > 0.1:
-        if funding_bias < 0:
+    if funding_rate is not None and abs(funding_rate) > 0.0001:
+        if funding_rate > 0.0001:
             triggers.append("High funding rate - long squeeze risk")
-        else:
+        elif funding_rate < -0.0001:
             triggers.append("Negative funding - short squeeze risk")
 
     if not triggers:

@@ -241,13 +241,13 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
                         <div
                           className="h-full rounded-full transition-all duration-300"
                           style={{
-                            width: `${pred.winRate}%`,
-                            background: pred.winRate >= 65 ? "#10B981" : pred.winRate >= 55 ? "#F59E0B" : "#EF4444",
+                            width: `${pred.compositeWinRate ?? pred.winRate}%`,
+                            background: (pred.compositeWinRate ?? pred.winRate) >= 80 ? "#10B981" : (pred.compositeWinRate ?? pred.winRate) >= 60 ? "#F59E0B" : "#EF4444",
                           }}
                         />
                       </div>
                       <span className={`font-mono text-[11px] font-bold ${confidenceColor[pred.confidence]}`}>
-                        {pred.winRate}%
+                        {pred.compositeWinRate ?? pred.winRate}
                       </span>
                     </div>
                   </td>
