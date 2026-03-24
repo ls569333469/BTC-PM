@@ -70,16 +70,16 @@ export function PolymarketPanel({ trend }: PolymarketPanelProps) {
 
   // Betting recommendation based on Chanlun trend
   const recommendation = trend === "bullish"
-    ? { action: "BUY YES", desc: "Chanlun trend is bullish - consider YES on BTC price targets", color: "text-emerald-500", bg: "bg-emerald-500/10" }
+    ? { action: "买入看涨", desc: "缠论趋势看涨 — 建议买入BTC看涨合约", color: "text-emerald-500", bg: "bg-emerald-500/10" }
     : trend === "bearish"
-    ? { action: "BUY NO", desc: "Chanlun trend is bearish - consider NO on BTC price targets", color: "text-red-500", bg: "bg-red-500/10" }
-    : { action: "WAIT", desc: "Market consolidating - wait for clear Chanlun breakout signal", color: "text-amber-500", bg: "bg-amber-500/10" };
+    ? { action: "买入看跌", desc: "缠论趋势看跌 — 建议买入BTC看跌合约", color: "text-red-500", bg: "bg-red-500/10" }
+    : { action: "观望", desc: "市场盘整中 — 等待缠论突破信号", color: "text-amber-500", bg: "bg-amber-500/10" };
 
   return (
     <div className="chart-section">
-      <h3 className="section-label mb-1">Polymarket Betting Guide</h3>
+      <h3 className="section-label mb-1">Polymarket 投注指南</h3>
       <p className="text-[10px] text-[var(--fg-muted)] mb-4">
-        Chanlun-driven recommendation for prediction market positions
+        基于缠论分析的预测市场持仓建议
       </p>
 
       {/* Recommendation banner */}
@@ -99,7 +99,7 @@ export function PolymarketPanel({ trend }: PolymarketPanelProps) {
         </div>
       ) : markets.length === 0 ? (
         <p className="text-xs text-[var(--fg-muted)] py-4 text-center">
-          No active BTC markets found on Polymarket
+          暂无BTC相关的Polymarket活跃市场
         </p>
       ) : (
         <div className="space-y-2">
@@ -114,16 +114,16 @@ export function PolymarketPanel({ trend }: PolymarketPanelProps) {
                 </p>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="text-[10px] text-[var(--fg-muted)]">
-                    Vol: {formatCompact(m.volume)}
+                    量: {formatCompact(m.volume)}
                   </span>
                   {m.yesPrice != null && (
                     <span className="text-[10px] font-mono text-emerald-500">
-                      YES: {(m.yesPrice * 100).toFixed(0)}c
+                      看涨: {(m.yesPrice * 100).toFixed(0)}c
                     </span>
                   )}
                   {m.noPrice != null && (
                     <span className="text-[10px] font-mono text-red-400">
-                      NO: {(m.noPrice * 100).toFixed(0)}c
+                      看跌: {(m.noPrice * 100).toFixed(0)}c
                     </span>
                   )}
                 </div>
@@ -134,7 +134,7 @@ export function PolymarketPanel({ trend }: PolymarketPanelProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="shrink-0 toolbar-btn"
-                  title="Open on Polymarket"
+                  title="在Polymarket查看"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                 </a>

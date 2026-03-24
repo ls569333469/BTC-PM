@@ -26,7 +26,7 @@ export function PriceChart({ priceHistory, bis, zhongshu, currentPrice }: PriceC
 
     const times = priceHistory.map((p) => {
       const d = new Date(typeof p.time === "number" ? p.time * 1000 : p.time);
-      return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+      return d.toLocaleString("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
     });
     const prices = priceHistory.map((p) => p.price);
 
@@ -159,7 +159,7 @@ export function PriceChart({ priceHistory, bis, zhongshu, currentPrice }: PriceC
   };
 
   const handleExportCsv = () => {
-    const headers = ["Time", "Price"];
+    const headers = ["时间", "价格"];
     const rows = priceHistory.map((p) => [p.time, p.price]);
     const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -173,8 +173,8 @@ export function PriceChart({ priceHistory, bis, zhongshu, currentPrice }: PriceC
 
   return (
     <ChartCard
-      title="BTC Price with Chanlun Overlay"
-      subtitle="Bi (stroke) points + ZhongShu (pivot) zones"
+      title="BTC价格与缠论叠加"
+      subtitle="笔段端点 + 中枢区域"
       onExportPng={handleExportPng}
       onExportCsv={handleExportCsv}
     >

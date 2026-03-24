@@ -26,7 +26,7 @@ const gradeConfig: Record<string, { label: string; color: string; bg: string; ic
 };
 
 // Timeframe display order
-const TF_ORDER = ["30m", "1h", "2h", "4h", "8h", "12h", "24h"];
+const TF_ORDER = ["5m", "15m", "30m", "1h", "2h", "4h", "12h", "1d"];
 
 function HitRateBar({ rate, count }: { rate: number; count: number }) {
   const barColor =
@@ -125,12 +125,8 @@ export function BacktestPanel({ stats }: BacktestPanelProps) {
     );
   }
 
-  const hitRateColor =
-    overall.hit_rate >= 60
-      ? "text-emerald-500"
-      : overall.hit_rate >= 45
-      ? "text-amber-500"
-      : "text-red-400";
+  const rateColor = (r: number) =>
+    r >= 60 ? "text-emerald-500" : r >= 45 ? "text-amber-500" : "text-red-400";
 
   return (
     <div className="chart-section">
@@ -155,30 +151,39 @@ export function BacktestPanel({ stats }: BacktestPanelProps) {
         </div>
       </div>
 
-      {/* KPI row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      {/* KPI row — 3轨道命中率 */}
+      <div className="grid grid-cols-3 gap-3 mb-4">
         <div className="p-3 rounded border border-[var(--border-base)] bg-[var(--bg-subtle)]">
-          <p className="text-[10px] text-[var(--fg-muted)] mb-1">{"\u603B\u547D\u4E2D\u7387"}</p>
-          <p className={`font-mono text-lg font-bold ${hitRateColor}`}>
-            {overall.hit_rate.toFixed(1)}%
+          <p className="text-[10px] text-[var(--fg-muted)] mb-1">缠论命中</p>
+          <p className={`font-mono text-lg font-bold ${rateColor(overall.chanlunHitRate)}`}>
+            {overall.chanlunHitRate.toFixed(1)}%
           </p>
         </div>
         <div className="p-3 rounded border border-[var(--border-base)] bg-[var(--bg-subtle)]">
-          <p className="text-[10px] text-[var(--fg-muted)] mb-1">{"\u5E73\u5747\u8BEF\u5DEE"}</p>
-          <p className="font-mono text-lg font-bold text-[var(--fg-base)]">
+          <p className="text-[10px] text-[var(--fg-muted)] mb-1">因子命中</p>
+          <p className={`font-mono text-lg font-bold ${rateColor(overall.factorHitRate)}`}>
+            {overall.factorHitRate.toFixed(1)}%
+          </p>
+        </div>
+        <div className="p-3 rounded border border-[var(--border-base)] bg-[var(--bg-subtle)]">
+          <p className="text-[10px] text-[var(--fg-muted)] mb-1">综合操作</p>
+          <p className={`font-mono text-lg font-bold ${rateColor(overall.compositeHitRate)}`}>
+            {overall.compositeHitRate.toFixed(1)}%
+          </p>
+        </div>
+      </div>
+      {/* 辅助指标 */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="p-2 rounded border border-[var(--border-base)] bg-[var(--bg-subtle)]">
+          <p className="text-[10px] text-[var(--fg-muted)] mb-0.5">平均误差</p>
+          <p className="font-mono text-sm font-bold text-[var(--fg-base)]">
             {overall.avg_error_pct != null ? `${overall.avg_error_pct.toFixed(2)}%` : "--"}
           </p>
         </div>
-        <div className="p-3 rounded border border-[var(--border-base)] bg-[var(--bg-subtle)]">
-          <p className="text-[10px] text-[var(--fg-muted)] mb-1">{"\u7CBE\u51C6\u9884\u6D4B"}</p>
-          <p className="font-mono text-lg font-bold text-emerald-500">
-            {overall.exact_count}
-          </p>
-        </div>
-        <div className="p-3 rounded border border-[var(--border-base)] bg-[var(--bg-subtle)]">
-          <p className="text-[10px] text-[var(--fg-muted)] mb-1">{"\u63A5\u8FD1\u9884\u6D4B"}</p>
-          <p className="font-mono text-lg font-bold text-emerald-400">
-            {overall.close_count}
+        <div className="p-2 rounded border border-[var(--border-base)] bg-[var(--bg-subtle)]">
+          <p className="text-[10px] text-[var(--fg-muted)] mb-0.5">精准/接近</p>
+          <p className="font-mono text-sm font-bold text-emerald-500">
+            {overall.exact_count}/{overall.close_count}
           </p>
         </div>
       </div>
@@ -191,18 +196,18 @@ export function BacktestPanel({ stats }: BacktestPanelProps) {
         <div className="space-y-1.5">
           {TF_ORDER.map((tf) => {
             const data = byTimeframe[tf];
-            if (!data || data.resolved === 0) return null;
+            if (!data || data.total === 0) return null;
             return (
               <div key={tf} className="flex items-center gap-2">
                 <span className="font-mono text-[11px] font-bold text-[var(--fg-base)] min-w-[28px]">
                   {tf.toUpperCase()}
                 </span>
-                <HitRateBar rate={data.hit_rate} count={data.resolved} />
+                <HitRateBar rate={data.chanlun_hit_rate} count={data.total} />
               </div>
             );
           })}
           {Object.keys(byTimeframe).length === 0 && (
-            <p className="text-[10px] text-[var(--fg-muted)]">{"\u6682\u65E0\u5DF2\u9A8C\u8BC1\u6570\u636E"}</p>
+            <p className="text-[10px] text-[var(--fg-muted)]">暂无已验证数据</p>
           )}
         </div>
       </div>
@@ -215,14 +220,9 @@ export function BacktestPanel({ stats }: BacktestPanelProps) {
         <div className="flex flex-wrap gap-3">
           {(["up", "down", "sideways"] as const).map((dir) => {
             const data = byDirection[dir];
-            if (!data || data.resolved === 0) return null;
+            if (!data || data.total === 0) return null;
             const DirIcon = directionIcon[dir] || Minus;
-            const color =
-              data.hit_rate >= 60
-                ? "text-emerald-500"
-                : data.hit_rate >= 45
-                ? "text-amber-500"
-                : "text-red-400";
+            const color = rateColor(data.chanlun_hit_rate);
             return (
               <div
                 key={dir}
@@ -242,7 +242,7 @@ export function BacktestPanel({ stats }: BacktestPanelProps) {
                     {directionLabel[dir] || dir}
                   </p>
                   <p className={`font-mono text-sm font-bold ${color}`}>
-                    {data.hit_rate.toFixed(1)}%
+                    {data.chanlun_hit_rate.toFixed(1)}%
                   </p>
                 </div>
               </div>

@@ -7,11 +7,13 @@ import { TrendingUp, TrendingDown, Minus, Activity } from "lucide-react";
 
 /** Full 2-decimal price: "70,123.45" */
 export function formatPrice(n: number) {
+  if (n == null || isNaN(n)) return "--";
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 /** Integer price: "70,123" */
 export function formatPriceShort(n: number) {
+  if (n == null || isNaN(n)) return "--";
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
@@ -46,8 +48,8 @@ export function formatDate(ts: string) {
 // ── Trend configuration (shared by MarketOverview, PollingLog) ────
 
 export const trendConfig = {
-  bullish: { icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "BULLISH" },
-  bearish: { icon: TrendingDown, color: "text-red-500", bg: "bg-red-500/10", label: "BEARISH" },
-  consolidating: { icon: Activity, color: "text-amber-500", bg: "bg-amber-500/10", label: "CONSOLIDATING" },
-  neutral: { icon: Minus, color: "text-[var(--fg-muted)]", bg: "bg-[var(--bg-subtle)]", label: "NEUTRAL" },
+  bullish: { icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "看涨" },
+  bearish: { icon: TrendingDown, color: "text-red-500", bg: "bg-red-500/10", label: "看跌" },
+  consolidating: { icon: Activity, color: "text-amber-500", bg: "bg-amber-500/10", label: "盘整" },
+  neutral: { icon: Minus, color: "text-[var(--fg-muted)]", bg: "bg-[var(--bg-subtle)]", label: "中性" },
 } as const;

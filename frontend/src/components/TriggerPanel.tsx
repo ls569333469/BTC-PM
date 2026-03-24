@@ -25,7 +25,7 @@ export function TriggerPanel({ predictions }: TriggerPanelProps) {
 
   return (
     <div className="chart-section">
-      <h3 className="section-label mb-3">Key Triggers</h3>
+      <h3 className="section-label mb-3">关键触发信号</h3>
       <div className="space-y-2">
         {triggers.map((trigger, i) => (
           <div

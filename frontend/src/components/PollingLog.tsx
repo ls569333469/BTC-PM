@@ -41,6 +41,7 @@ interface PollingLogProps {
 }
 
 function formatPrice(n: number) {
+  if (n == null || isNaN(n)) return "--";
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -53,10 +54,10 @@ function formatDate(ts: string) {
 }
 
 const trendMap: Record<string, { label: string; icon: typeof TrendingUp; color: string }> = {
-  bullish: { label: "BULLISH", icon: TrendingUp, color: "text-emerald-500" },
-  bearish: { label: "BEARISH", icon: TrendingDown, color: "text-red-400" },
-  consolidating: { label: "CONSOLIDATING", icon: Minus, color: "text-amber-500" },
-  neutral: { label: "NEUTRAL", icon: Minus, color: "text-[var(--fg-muted)]" },
+  bullish: { label: "看涨", icon: TrendingUp, color: "text-emerald-500" },
+  bearish: { label: "看跌", icon: TrendingDown, color: "text-red-400" },
+  consolidating: { label: "盘整", icon: Minus, color: "text-amber-500" },
+  neutral: { label: "中性", icon: Minus, color: "text-[var(--fg-muted)]" },
 };
 
 export function PollingLog({ records, isPolling }: PollingLogProps) {

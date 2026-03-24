@@ -3,28 +3,28 @@ Constants used across the application.
 """
 
 # Timeframes for predictions
-TIMEFRAMES = ["30m", "1h", "2h", "4h", "8h", "12h", "24h"]
+TIMEFRAMES = ["5m", "15m", "30m", "1h", "2h", "4h", "12h", "1d"]
 
-# Timeframe duration in minutes
-TIMEFRAME_MINUTES = {
+TF_MINUTES = {
+    "5m": 5,
+    "15m": 15,
     "30m": 30,
     "1h": 60,
     "2h": 120,
     "4h": 240,
-    "8h": 480,
     "12h": 720,
-    "24h": 1440,
+    "1d": 1440,
 }
 
-# Weight classes for different timeframes
-WEIGHT_CLASSES = {
+TF_WEIGHT_CLASSES = {
+    "5m": "1H",
+    "15m": "1H",
     "30m": "1H",
     "1h": "1H",
     "2h": "4H",
     "4h": "4H",
-    "8h": "1D",
     "12h": "1D",
-    "24h": "1D",
+    "1d": "1D",
 }
 
 # Accuracy grading thresholds

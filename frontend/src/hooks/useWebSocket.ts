@@ -64,8 +64,10 @@ export function useWebSocket(): UseWebSocketReturn {
               // Instantly update TanStack Query cache
               if (msg.data) {
                 queryClient.setQueryData(["chanlun", "analysis"], msg.data);
+                
+                // Allow the frontend visual clock loop to handle Polymarket sync natively
                 setLastUpdate(msg.ts ?? Date.now() / 1000);
-                console.log("[WS] Analysis update received, cache updated");
+                console.log("[WS] Analysis up-to-date.");
               }
               break;
 

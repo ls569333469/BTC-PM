@@ -18,7 +18,13 @@ class PolymarketClient:
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
-            self._client = httpx.AsyncClient(timeout=30.0)
+            self._client = httpx.AsyncClient(
+                timeout=30.0,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                    "Accept": "application/json"
+                }
+            )
         return self._client
 
     async def close(self):
@@ -55,28 +61,17 @@ class PolymarketClient:
         events = resp.json()
         return events[0] if events else None
 
-    async def get_market_prices(self, token_ids: list[str]) -> list[dict]:
-        """Get current prices for market tokens."""
+    async def get_market_by_slug(self, slug: str) -> Optional[dict]:
+        """Get a specific market by its slug."""
         client = await self._get_client()
-        prices = []
-        for token_id in token_ids:
-            try:
-                resp = await client.get(
-                    f"{self.base_url}/markets/{token_id}",
-                )
-                if resp.status_code == 200:
-                    prices.append(resp.json())
-            except Exception:
-                continue
-        return prices
+        resp = await client.get(f"{self.base_url}/markets/slug/{slug}")
+        if resp.status_code != 200:
+            return None
+        return resp.json()
 
-
-# Singleton
-_polymarket_client: Optional[PolymarketClient] = None
-
-
+_client_instance = None
 def get_polymarket_client() -> PolymarketClient:
-    global _polymarket_client
-    if _polymarket_client is None:
-        _polymarket_client = PolymarketClient()
-    return _polymarket_client
+    global _client_instance
+    if _client_instance is None:
+        _client_instance = PolymarketClient()
+    return _client_instance

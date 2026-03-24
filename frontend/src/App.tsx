@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
 import { useChanlunAnalysis, useChanlunValidation, useBacktestStats, usePolymarketPrices } from "./lib/chanlun";
@@ -18,9 +19,10 @@ import { PolymarketGuide } from "./components/PolymarketGuide";
 import { Skeleton } from "./components/ui/skeleton";
 import ErrorBoundary from "./ErrorBoundary";
 
-const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes (Driven primarily by WS invalidation)
 
 export default function App() {
+  const queryClient = useQueryClient();
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   const [prevPredictions, setPrevPredictions] = useState<Prediction[] | null>(null);
@@ -38,8 +40,8 @@ export default function App() {
     data: validation,
   } = useChanlunValidation(prevPredictions ?? undefined);
 
-  const { data: backtestStats } = useBacktestStats(5 * 60 * 1000);
-  const { data: polymarketData } = usePolymarketPrices(5 * 60 * 1000);
+  const { data: backtestStats } = useBacktestStats(REFRESH_INTERVAL);
+  const { data: polymarketData } = usePolymarketPrices(REFRESH_INTERVAL);
 
   // WebSocket — real-time push from APScheduler
   const { connected: wsConnected } = useWebSocket();
@@ -53,6 +55,28 @@ export default function App() {
       prevPredRef.current = analysis.predictions;
     }
   }, [analysis?.predictions]);
+
+  // Autonomous UTC Clock watcher for Polymarket Sync
+  // Fully decoupled from Backend WebSockets to ensure zero dependency on APScheduler timing.
+  useEffect(() => {
+    let lastSecond = new Date().getSeconds();
+    const interval = setInterval(() => {
+      const now = new Date();
+      const currentSeconds = now.getSeconds();
+      const currentMinsMod = now.getMinutes() % 5;
+      
+      if (currentSeconds !== lastSecond) {
+        lastSecond = currentSeconds;
+        // Fire precisely at +2s and +15s past the 5-minute divisible boundary.
+        // This flawlessly captures immediate and CDN-lagged Polymarket Gamma API slugs.
+        if (currentMinsMod === 0 && (currentSeconds === 2 || currentSeconds === 15)) {
+          queryClient.invalidateQueries({ queryKey: ["polymarket", "prices"] });
+          console.log(`[Epoch Sync] Autonomous Polymarket reset triggered at +${currentSeconds}s`);
+        }
+      }
+    }, 500); 
+    return () => clearInterval(interval);
+  }, [queryClient]);
 
   const handleRefresh = useCallback(() => {
     refetch();
@@ -84,11 +108,11 @@ export default function App() {
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 pulse-dot" />
               <h1 className="text-sm font-bold text-[var(--fg-base)]">
-                BTC Chanlun Analyzer
+                BTC 缠论分析器
               </h1>
             </div>
             <span className="text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--fg-muted)] hidden md:inline">
-              Polymarket Betting Guide
+              投注指南
             </span>
           </div>
           <div className="flex items-center gap-3">

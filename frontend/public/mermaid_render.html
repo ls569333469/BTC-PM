@@ -1,159 +1,267 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta charset="utf-8">
-<title>BTC缠论分析器 — 架构导图</title>
-<style>
-  body { background: #0a0a1a; color: #e0e0e0; font-family: 'Microsoft YaHei', sans-serif; padding: 40px 60px; margin: 0; }
-  h1 { text-align: center; color: #00d4ff; font-size: 32px; margin-bottom: 40px; }
-  h2 { color: #a78bfa; font-size: 22px; margin-top: 50px; border-left: 4px solid #7c3aed; padding-left: 12px; }
-  .mermaid { background: #111827; border-radius: 12px; padding: 30px; margin: 20px 0; border: 1px solid #1e293b; }
-  hr { border: none; border-top: 1px solid #1e293b; margin: 40px 0; }
-  .note { background: #1a1a2e; border-left: 3px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 0 8px 8px 0; font-size: 14px; color: #fbbf24; }
-</style>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-<script>
-mermaid.initialize({
-  startOnLoad: true, theme: 'dark',
-  themeVariables: { darkMode: true, background: '#111827', primaryColor: '#7c3aed', primaryBorderColor: '#a78bfa', primaryTextColor: '#f0f0f0', secondaryColor: '#1e3a5f', lineColor: '#6366f1', textColor: '#e0e0e0', mainBkg: '#1e293b', nodeBorder: '#6366f1', clusterBkg: '#0f172a', clusterBorder: '#334155', fontFamily: 'Microsoft YaHei, sans-serif', fontSize: '14px' },
-  flowchart: { curve: 'basis', padding: 15 },
-});
-</script>
+    <meta charset="utf-8">
+    <title>BTC缠论分析器 — 架构导图 (P5 完整版)</title>
+    <style>
+        body {
+            background: #0a0a1a;
+            color: #e0e0e0;
+            font-family: 'Microsoft YaHei', sans-serif;
+            padding: 40px 60px;
+            margin: 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: #00d4ff;
+            font-size: 32px;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            color: #a78bfa;
+            font-size: 22px;
+            margin-top: 50px;
+            border-left: 4px solid #7c3aed;
+            padding-left: 12px;
+        }
+
+        .mermaid {
+            background: #111827;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px 0;
+            border: 1px solid #1e293b;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #1e293b;
+            margin: 40px 0;
+        }
+
+        .note {
+            background: #1a1a2e;
+            border-left: 3px solid #f59e0b;
+            padding: 12px 16px;
+            margin: 16px 0;
+            border-radius: 0 8px 8px 0;
+            font-size: 14px;
+            color: #fbbf24;
+        }
+
+        .note.green {
+            border-left-color: #10b981;
+            color: #6ee7b7;
+        }
+
+        .note.red {
+            border-left-color: #ef4444;
+            color: #fca5a5;
+        }
+
+        .update-badge {
+            display: inline-block;
+            background: #7c3aed;
+            color: white;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: true, theme: 'dark',
+            themeVariables: { darkMode: true, background: '#111827', primaryColor: '#7c3aed', primaryBorderColor: '#a78bfa', primaryTextColor: '#f0f0f0', secondaryColor: '#1e3a5f', lineColor: '#6366f1', textColor: '#e0e0e0', mainBkg: '#1e293b', nodeBorder: '#6366f1', clusterBkg: '#0f172a', clusterBorder: '#334155', fontFamily: 'Microsoft YaHei, sans-serif', fontSize: '14px' },
+            flowchart: { curve: 'basis', padding: 15 },
+        });
+    </script>
 </head>
+
 <body>
 
-<h1>🔗 BTC缠论分析器 — 架构导图</h1>
+    <h1>🔗 BTC缠论分析器 — 实战架构导图 <span class="update-badge">截至 P5</span></h1>
 
-<h2>一、系统架构总览</h2>
-<div class="mermaid">
-flowchart TD
-    数据["📡 外部数据<br/>币安K线 · 资金费率 · 持仓量 · 恐惧贪婪"]
-    PM数据["📡 Polymarket API + Chainlink基准价"]
+    <h2>一、系统架构总览 (并行双轨评估) <span class="update-badge">架构清单 #1</span></h2>
+    <div class="mermaid">
+        flowchart TD
+        数据["📡 外部数据<br />币安K线 · 持仓量"]
+        PM数据["📡 Polymarket Gamma API"]
 
-    数据 --> 评分系统
-    PM数据 --> PM服务["PM数据处理服务"]
+        数据 --> 评分系统
+        PM数据 --> PM服务["PM数据处理服务<br />(slug查询+fallback)"]
 
-    subgraph 评分系统["评分系统 (每5分钟)"]
+        subgraph 评分系统["评分系统 (每5分钟 · 0-100分制)"]
         direction TB
-        缠论["缠论分析 (主)<br/>分型→笔→线段→中枢→买卖点<br/>→ 缠论胜率"]
-        六因子["6因子评分 (辅)<br/>MACD·成交量·布林带·资金费率·恐惧贪婪·RSI<br/>→ 6因子胜率"]
-        缠论 --> 合并["合并 → 综合胜率<br/>(缠论胜率 + 6因子胜率 加权)"]
-        六因子 --> 合并
-    end
+        缠论["🔧 缠论引擎 (主信号)<br />chan.py完整框架<br />→ chanlunWinRate"]
+        六因子["📊 6因子模型 (辅信号)<br />MACD·成交量·布林带·KDJ·SAR·MFI<br />→ factorWinRate"]
+        方向["🎯 一致性决策 (2C)<br />同向增强 / 因子中性 / 方向矛盾"]
+        缠论 -->|方向+胜率| 方向
+        六因子 -->|方向+胜率| 方向
+        方向 --> 综合["输出: compositeWinRate<br />+ 5级评分标签"]
+        end
 
-    合并 --> 存储["💾 数据库"]
-    合并 --> WS["📡 WebSocket推送"]
+        综合 --> 存储["💾 SQLite数据库<br />(5个主流级别预测 × 3轨道)"]
+        综合 --> WS["📡 WebSocket推送"]
 
-    PM服务 --> 指南["合并评分+PM → 投注指南"]
-    合并 -.-> 指南
+        PM服务 --> 指南["合并评分+PM → 投注指南<br />(fallback: 纯缠论指南)"]
+        综合 -.-> 指南
 
-    存储 --> 结算["⏰ 每5分钟自动结算"]
+        存储 --> 结算["⏰ 每5分钟自动结算"]
 
-    subgraph 前端["🖥️ 前端 (React · 全部5分钟轮询)"]
+        subgraph 前端["🖥️ 前端 (React + TanStack Query)"]
         direction LR
         C1["市场概览"]
         C2["K线+缠论图"]
-        C3["预测表格"]
-        C4["投注指南"]
-        C5["回测统计"]
-    end
+        C3["价格目标预测图"]
+        C4["多时间框架预测表"]
+        C5["投注指南表"]
+        C6["回测面板(3轨道)"]
+        end
 
-    WS --> 前端
-    指南 --> 前端
-    结算 --> 前端
-</div>
+        WS --> 前端
+        指南 --> 前端
+        结算 --> 前端
+    </div>
+    <div class="note green">✅ 修复架构倒装：缠论与6因子确认为“并行计算”最后“合并决策”。</div>
 
-<hr>
+    <hr>
 
-<h2>二、评分系统内部 (每5分钟)</h2>
-<div class="mermaid">
-flowchart TD
-    取数["📡 并行获取数据<br/>币安K线 · 资金费率 · 恐惧贪婪 · 持仓量"]
-    取数 --> 指标["计算技术指标: RSI · MACD · 布林带"]
+    <h2>二、双引擎评分机制细节 <span class="update-badge">问题清单 #3, #4, #8</span></h2>
+    <div class="mermaid">
+        flowchart TD
+        取数["📡 并行获取数据<br />币安K线 · 持仓量"]
+        取数 --> 指标["计算技术指标: <br />MACD · 布林带 · KDJ · SAR · MFI · 成交量"]
 
-    指标 --> 缠论
-    指标 --> 六因子
+        指标 --> 缠论
+        指标 --> 六因子
 
-    subgraph 缠论["🔧 缠论分析 (主) — 纯K线结构分析"]
+        subgraph 缠论["🔧 缠论分析 (主信号) — 纯K线结构体系"]
         direction TB
-        L1["K线包含处理"] --> L2["分型识别(顶/底)"] --> L3["笔(≥5根K线)"]
-        L3 --> L4["线段(≥3笔)"] --> L5["中枢(≥3线段重叠)"]
-        L5 --> L6["走势类型(趋势/盘整)"] --> L7["买卖点(一/二/三类)"]
-        L7 --> L8["输出: 方向 + 目标价 + 缠论胜率<br/>8级别: 5分·30分·1时·2时·4时·8时·12时·24时"]
-    end
+        L1["chan.py 集成"] --> L2["分离纯K数据<br />(剥离恐惧贪婪等外部污染)"]
+        L2 --> L3["识别分型、笔、线段<br />重组中枢"]
+        L3 --> L4["结构方向 + 买卖点检测<br />(一类/二类/三类)"]
+        L4 --> L8["输出纯结构置信度<br />→ chanlunWinRate + 支撑阻力价位"]
+        end
 
-    subgraph 六因子["📊 6因子评分 (辅) — 独立量化指标"]
+        subgraph 六因子["📊 6因子评分 (辅助信号) — 定量指标体系"]
         direction TB
-        F["MACD背驰(0.8) · 成交量(0.5) · 布林带(0.6)<br/>资金费率(0.6) · 恐惧贪婪(0.5) · RSI(0.7)"]
-        F --> FS["输出: 6因子胜率"]
-    end
+        F1["MACD背驰(0.8)"] --> FS
+        F2["成交量趋势(0.5)"] --> FS
+        F3["布林带(0.6)"] --> FS
+        F4["KDJ(0.7) ← 替换RSI"] --> FS
+        F5["SAR(0.6) ← 替换恐惧贪婪"] --> FS
+        F6["MFI(0.5) ← 替换资金费率"] --> FS
+        FS["加权归一化 → factorWinRate<br />(共识弱时处于<30分数段)"] end L8 --> 决策
+            FS --> 决策
 
-    L8 --> 合并["🎯 合并: 方向 + 目标价 + 综合胜率<br/>= 缠论胜率 × 权重 + 6因子胜率 × 权重"]
-    FS --> 合并
+            subgraph 决策["🎯 方向一致性决策 (2C阶段)"]
+            direction TB
+            D1["缠论弱 (
+            <30) → 统一观望: 综合=0"] D2["因子中立/分歧 (<30) → 以缠为尊: 综合=缠论"] D3["同向 (皆≥30) → 加权共振: 缠60%+因40%<br />方向状态: 同向增强"]
+            D4["反向 (不一致) → 警示观望: 综合=0<br />方向状态: 方向矛盾"]
+            end
 
-    合并 --> 存储["💾 存入数据库<br/>含3个独立胜率"]
-    合并 --> 推送["📡 WebSocket推送前端"]
-</div>
-<div class="note">⚠️ 缠论分析应只包含纯K线结构分析(分型→笔→线段→中枢→买卖点)，不应混入RSI/资金费率等非缠论指标</div>
+            决策 --> 存储["输出三条独立轨道：<br />chanlunWinRate / factorWinRate / compositeWinRate"]
+    </div>
+    <div class="note green">✅ 移除缠论污染：彻底去除了`prediction.py`中非结构分析指标(如funding)。<br />✅ 产出三种独立WinRate以供前台展示。</div>
+    <div class="note red">🔴 P4 待修复问题：当前代码复用了单根1h K线的分析结果赋给所有的8个预测时间框架，导致多层面的评分完全相同，拟在 P4 设计中分时间块拉取处理。</div>
 
-<hr>
+    <hr>
 
-<h2>三、Polymarket投注指南</h2>
-<div class="mermaid">
-flowchart TD
-    查询["查询6个PM时间框架<br/>5分·15分·1时·4时·日线·周线"]
-    查询 --> API["Polymarket API"]
-    API --> 概率["涨/跌概率"]
-    API --> 基准["开盘基准价 (Chainlink)"]
-    评分["评分系统预测结果"] --> 合并
-    概率 --> 合并["合并生成投注指南"]
-    基准 --> 合并
-    合并 --> 结果["基准价 · 偏移 · 操作建议<br/>缠论胜率 · 6因子胜率 · 综合胜率 · PM概率"]
-</div>
+    <h2>三、Polymarket 投注指南 <span class="update-badge">P5 核心重构</span></h2>
+    <div class="mermaid">
+        flowchart TD
+        入口["GET /api/polymarket-prices/prices"]
+        入口 --> 分流["路由分发: 过滤垃圾时间周期，仅保留主流 5 档"]
+        分流 --> Epoch["纯时间戳循环盘口<br />(5m · 15m · 4h)"]
+        分流 --> Event["长线事件化盘口<br />(1h · 1d)"]
 
-<hr>
+        Epoch --> P_Epoch["动态计算 UTC 开始时间戳<br />构造: btc-updown-4h-{timestamp}"]
+        Event --> P_Event["根据年月日时生成长句<br />构造: bitcoin-up-or-down-march..."]
 
-<h2>四、前端数据来源 (全部5分钟统一轮询)</h2>
-<div class="mermaid">
-flowchart LR
-    WS["WebSocket推送 (即时)"] --> 缓存["数据缓存"]
-    H1["轮询5分钟: 评分数据"] --> 缓存
-    H2["轮询5分钟: PM盘口"] --> 缓存
-    H3["轮询5分钟: 回测统计"] --> 缓存
-    缓存 --> C1["市场概览"]
-    缓存 --> C2["K线+缠论图"]
-    缓存 --> C3["预测表格 (8级别)"]
-    缓存 --> C4["投注指南 (6框架)"]
-    缓存 --> C5["回测面板"]
-</div>
+        P_Epoch --> PM["并发查询 Polymarket Gamma API"]
+        P_Event --> PM
 
-<hr>
+        PM --> 判定{是否存在原生盘口数据?}
+        判定 -->|Yes| 提取["精准提取 priceToBeat(基准) 和 upProb(实盘胜率)"]
+        判定 -->|No / 404| 回退["触发级联熔断 Fallback<br />抓取币安现货价格作为技术面板基准"]
 
-<h2>五、回测系统 (3套独立回测)</h2>
-<div class="mermaid">
-flowchart TD
-    subgraph 保存["① 保存预测 (每5分钟)"]
-        S1["每条记录:<br/>时间级别 · 方向 · 目标价 · 当前价<br/>缠论胜率 · 6因子胜率 · 综合胜率<br/>PM操作 · PM概率 · PM基准价"]
-    end
+        提取 --> 合并["整合 缠论/6因子 综合评分与 PM赔率边际势能"]
+        回退 --> 合并
 
-    subgraph 结算["② 自动结算 (每5分钟)"]
-        R1["查到期预测"] --> R2["获取BTC当前价"]
-        R2 --> R3["对比方向+目标价"]
-        R3 --> G1["方向对+误差≤0.1% → 精准命中"]
-        R3 --> G2["方向对+误差≤0.3% → 接近命中"]
-        R3 --> G3["方向对+误差>0.3% → 命中"]
-        R3 --> G4["方向错 → 未命中"]
-    end
+        合并 --> 输出["渲染五大主流周期表格<br />缺失的实盘胜率隐去，但保留 UI 几何结构"]
+    </div>
+    <div class="note green">✅ P5 救赎：逆向揪出了 Polymarket 隐藏在代码底层的 4H Unix Epoch 规律格式。<br />✅ 彻底摒弃全拼式事件抓取方案，从根本上解决 4H
+        版块假死与数据错位现象。</div>
 
-    subgraph 统计["③ 3套独立统计"]
-        T1["缠论回测: 缠论预测 vs 实际"]
-        T2["6因子回测: 6因子评分 vs 实际"]
-        T3["综合回测: 综合胜率 vs 实际"]
-        T4["维度: 总体·按时间·按方向·最近记录·7日趋势"]
-    end
+    <hr>
 
-    保存 --> 结算 --> 统计
-</div>
+    <h2>四、回测系统 (三轨道独立KPI) <span class="update-badge">问题清单 #6</span></h2>
+    <div class="mermaid">
+        flowchart TD
+        subgraph 保存["① 5Min 自动存档"]
+        S1["对8档时间范围存入最新预测"]
+        S2["增加字段:<br />chanlun/factor/composite 及各自 direction（共8列）"]
+        S1 --> S2
+        end
+
+        subgraph 结算["② Timer 定期检查与判定"]
+        R1["扫描到期的预测"] --> R2["获取该时间戳的BTC真实现价"]
+        R2 --> R3["执行三维并列评估"]
+        R3 --> CH["缠论验证: 预测 chanlunDirection 是否正确?"]
+        R3 --> FA["因子验证: 预测 factorDirection 是否正确?"]
+        R3 --> CO["综合验证: 预测 compositeDirection 是否正确?"]
+        CH --> 更新DB["写入 chanlun_correct/factor_correct/composite_correct"]
+        FA --> 更新DB
+        CO --> 更新DB
+        end
+
+        subgraph 统计["③ 前端反馈 (Backtest Stats API)"]
+        T1["分类提取: 全部预测 / 仅看涨 / 仅看跌"]
+        T2["按时间框架拆解(5m...24h)"]
+        T1 --> 计算
+        T2 --> 计算
+        计算["统计对应的三大命中率:<br />chanlunHitRate / factorHitRate / compositeHitRate"]
+        end
+
+        保存 --> 结算 --> 统计
+    </div>
+    <div class="note green">✅ 问题解决：摆脱了只能单一测试缠论的限制，3个引擎预测有效性将能在未来清晰反馈，前端回测面板(BacktestPanel)现已展示3KPI。</div>
+
+    <hr>
+
+    <h2>五、底层数据库层 (PredictionRecord 增强) <span class="update-badge">P3新增</span></h2>
+    <div class="mermaid">
+        erDiagram
+        PredictionRecord {
+        int id PK
+        string timeframe "时间级别 (5m, 15m, 1h, 4h, 1d)"
+        string direction "原始预测方向"
+        float target_price "目标价"
+        float current_price "当前价"
+        int win_rate "旧统一胜率"
+        int chanlun_win_rate "缠论主轨道评分 0-100 (NEW)"
+        int factor_win_rate "6因子副轨道评分 0-100 (NEW)"
+        string chanlun_direction "缠论方向 (NEW)"
+        string factor_direction "因子方向 (NEW)"
+        int composite_win_rate "结合决策后分数 (NEW)"
+        string composite_direction "决策执行方向 (NEW)"
+        bool chanlun_correct "缠论判定 (NEW)"
+        bool factor_correct "因子判定 (NEW)"
+        bool composite_correct "综合判定 (NEW)"
+        datetime created_at "创建时间"
+        datetime resolved_at "结算时间"
+        float resolved_price "结标价格"
+        string result "成功失败结语"
+        }
+    </div>
 
 </body>
+
 </html>

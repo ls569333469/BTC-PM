@@ -13,10 +13,10 @@ export function ChartToolbar({
 }: ChartToolbarProps) {
   return (
     <div className="flex gap-2">
-      <button onClick={onExportPng} className="toolbar-btn" title="Export PNG">
+      <button onClick={onExportPng} className="toolbar-btn" title="导出PNG">
         <Camera className="h-3.5 w-3.5" />
       </button>
-      <button onClick={onExportCsv} className="toolbar-btn" title="Export CSV">
+      <button onClick={onExportCsv} className="toolbar-btn" title="导出CSV">
         <Download className="h-3.5 w-3.5" />
       </button>
       {onEnlarge && (

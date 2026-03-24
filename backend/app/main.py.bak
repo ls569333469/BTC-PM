@@ -25,10 +25,6 @@ async def lifespan(app: FastAPI):
         print(f"⚠️  Database not available: {e}")
         print("   Server will start without DB. Configure DATABASE_URL in .env")
 
-    # Start Oracle Daemon
-    from app.services.oracle_service import start_oracle_listener
-    start_oracle_listener()
-
     # Start APScheduler
     from apscheduler.schedulers.asyncio import AsyncIOScheduler
     from app.api.cron import set_scheduler

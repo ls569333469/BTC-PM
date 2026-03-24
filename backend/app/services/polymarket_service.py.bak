@@ -32,10 +32,6 @@ _CACHE_PM = {}
 _CACHE_PM_TTL = 60.0
 _PM_LOCK = asyncio.Lock()
 
-def _is_stale_epoch(now_sec: float, cached_sec: float) -> bool:
-    """Force cache bust instantly if we crossed a 5-minute boundary."""
-    return (int(now_sec) // 300) > (int(cached_sec) // 300)
-
 
 class PolymarketService:
     """Service to fetch matching Polymarket betting guides for predictions."""
@@ -55,16 +51,14 @@ class PolymarketService:
         # Fast path lockless check
         if "data" in _CACHE_PM:
             data, timestamp = _CACHE_PM["data"]
-            now_sec = datetime.now(timezone.utc).timestamp()
-            if (now_sec - timestamp < _CACHE_PM_TTL) and not _is_stale_epoch(now_sec, timestamp):
+            if datetime.now(timezone.utc).timestamp() - timestamp < _CACHE_PM_TTL:
                 return data
                 
         # Double-checked locking to prevent Thundering Herd on cache miss
         async with _PM_LOCK:
             if "data" in _CACHE_PM:
                 data, timestamp = _CACHE_PM["data"]
-                now_sec = datetime.now(timezone.utc).timestamp()
-                if (now_sec - timestamp < _CACHE_PM_TTL) and not _is_stale_epoch(now_sec, timestamp):
+                if datetime.now(timezone.utc).timestamp() - timestamp < _CACHE_PM_TTL:
                     return data
                     
             et = _get_et_now()
@@ -296,30 +290,6 @@ class PolymarketService:
     async def _generate_fallback_guides(self, analysis: dict | None = None) -> list[dict]:
         return []
 
-    async def _get_hybrid_oracle_price(self, start_ts: int) -> Optional[float]:
-        from app.services.oracle_service import get_price_at
-        from app.clients.binance_client import get_binance_client
-        import logging
-        
-        # 1. Primary Oracle (100% Precision Chainlink Local DB)
-        ptb = get_price_at(start_ts)
-        if ptb:
-            logging.info(f"🎯 Hybrid Oracle: Fetched {start_ts} from SQLite tracker: {ptb}")
-            return ptb
-            
-        # 2. Secondary Oracle (Binance Historical 1m K-Line Fallback)
-        try:
-            logging.warning(f"⚠️ SQLite missed {start_ts}. Falling back to Binance historical Kline!")
-            b_client = get_binance_client()
-            klines = await b_client.get_klines("BTCUSDT", interval="1m", limit=1, start_time_ms=start_ts * 1000)
-            if klines:
-                ptb = float(klines[0]["open"])
-                logging.info(f"🛡️ Hybrid Oracle: Fallback Binance Open Price => {ptb}")
-                return ptb
-        except Exception as e:
-            logging.error(f"Binance Fallback Failed: {e}")
-        return None
-
     # ── Timeframe fetchers ──
 
     async def _fetch_5m(self, et: dict) -> Optional[dict]:
@@ -327,9 +297,6 @@ class PolymarketService:
         for s in slugs:
             data = await self._process_updown_market(s["slug"])
             if data and data.get("upProb") is not None:
-                ptb = await self._get_hybrid_oracle_price(s["start_ts"])
-                if ptb:
-                    data["priceToBeat"] = ptb
                 return self._build_updown_tf(data)
         return None
 
@@ -338,9 +305,6 @@ class PolymarketService:
         for s in slugs:
             data = await self._process_updown_market(s["slug"])
             if data and data.get("upProb") is not None:
-                ptb = await self._get_hybrid_oracle_price(s["start_ts"])
-                if ptb:
-                    data["priceToBeat"] = ptb
                 return self._build_updown_tf(data)
         return None
 
@@ -372,9 +336,6 @@ class PolymarketService:
         for s in slugs:
             data = await self._process_updown_market(s["slug"])
             if data and data.get("upProb") is not None:
-                ptb = await self._get_hybrid_oracle_price(s["start_ts"])
-                if ptb:
-                    data["priceToBeat"] = ptb
                 return self._build_updown_tf(data)
         return None
 
@@ -735,7 +696,7 @@ def _gen_5m_slugs(et: dict) -> list[dict]:
                 hour = 0
                 day += 1
         ts = _et_to_unix(et["year"], et["month"], day, hour, start_min)
-        slugs.append({"slug": f"btc-updown-5m-{round(ts)}", "start_ts": round(ts)})
+        slugs.append({"slug": f"btc-updown-5m-{round(ts)}"})
     return slugs
 
 
@@ -753,7 +714,7 @@ def _gen_15m_slugs(et: dict) -> list[dict]:
                 hour = 0
                 day += 1
         ts = _et_to_unix(et["year"], et["month"], day, hour, start_min)
-        slugs.append({"slug": f"btc-updown-15m-{round(ts)}", "start_ts": round(ts)})
+        slugs.append({"slug": f"btc-updown-15m-{round(ts)}"})
     return slugs
 
 
@@ -789,7 +750,7 @@ def _gen_4h_slugs(et: dict) -> list[dict]:
             hour -= 24
             day += 1
         ts = _et_to_unix(et["year"], et["month"], day, hour, 0)
-        slugs.append({"slug": f"btc-updown-4h-{round(ts)}", "start_ts": round(ts)})
+        slugs.append({"slug": f"btc-updown-4h-{round(ts)}"})
     return slugs
 
 

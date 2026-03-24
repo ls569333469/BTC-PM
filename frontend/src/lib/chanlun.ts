@@ -22,6 +22,7 @@ export interface Prediction {
   triggers: string[];
   confidence: "high" | "medium" | "low";
   engineUsed?: string;
+  isDeadZone?: boolean;
 }
 
 export interface BiPoint {
@@ -98,7 +99,7 @@ export function useChanlunAnalysis(refetchInterval?: number) {
     queryKey: ["chanlun", "analysis"],
     queryFn: fetchChanlunAnalysis,
     refetchInterval: refetchInterval || 5 * 60 * 1000, // 5min default
-    staleTime: 60 * 1000,
+    staleTime: 10 * 1000,
   });
 }
 
@@ -132,6 +133,9 @@ export interface BacktestRecentPrediction {
   direction_correct: boolean;
   accuracy_grade: "EXACT" | "CLOSE" | "HIT" | "MISS";
   error_pct: number;
+  chanlun_correct?: boolean;
+  factor_correct?: boolean;
+  composite_correct?: boolean;
 }
 
 export interface BacktestStats {
@@ -139,16 +143,33 @@ export interface BacktestStats {
     total: number;
     resolved: number;
     pending: number;
-    hits: number;
-    hit_rate: number;
+    chanlunHitRate: number;
+    factorHitRate: number;
+    compositeHitRate: number;
     exact_count: number;
     close_count: number;
     avg_error_pct: number | null;
   };
-  byTimeframe: Record<string, { resolved: number; hit_rate: number }>;
-  byDirection: Record<string, { resolved: number; hit_rate: number }>;
+  byTimeframe: Record<string, {
+    total: number;
+    chanlun_hit_rate: number;
+    factor_hit_rate: number;
+    composite_hit_rate: number;
+    avg_error: number;
+  }>;
+  byDirection: Record<string, {
+    total: number;
+    chanlun_hit_rate: number;
+    factor_hit_rate: number;
+  }>;
   recentPredictions: BacktestRecentPrediction[];
-  trend?: { date: string; sample_size: number; hits: number; hit_rate: number }[];
+  trend?: {
+    date: string;
+    sample_size: number;
+    chanlun_hit_rate: number;
+    factor_hit_rate: number;
+    composite_hit_rate: number;
+  }[];
 }
 
 async function fetchBacktestStats(): Promise<BacktestStats> {
@@ -200,6 +221,35 @@ export interface BettingGuide {
   marketDownProb?: number;
   reason: string;
   factors: string[];
+  endTimeLocal?: string;
+  upDownLink?: string;
+  strikeEventSlug?: string;
+  volume?: number;
+  marketCount?: number;
+}
+
+export interface PolyStrike {
+  strike: number;
+  yesPct: number;
+  noPct: number;
+  volume: number;
+  polymarket_link?: string;
+}
+
+export interface PolyEvent {
+  event_slug: string;
+  title: string;
+  timeLabel: string;
+  date: string;
+  impliedPrice: number | null;
+  volume: number;
+  marketCount: number;
+  strikes: PolyStrike[];
+}
+
+export interface PolyTimeframe {
+  timeframe: string;
+  label: string;
 }
 
 export interface PolymarketPricesResponse {
@@ -219,6 +269,6 @@ export function usePolymarketPrices(refetchInterval?: number) {
     queryKey: ["polymarket", "prices"],
     queryFn: fetchPolymarketPrices,
     refetchInterval: refetchInterval || 5 * 60 * 1000,
-    staleTime: 60 * 1000,
+    staleTime: 10 * 1000,
   });
 }

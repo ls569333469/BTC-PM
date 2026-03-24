@@ -8,6 +8,7 @@ interface ValidationPanelProps {
 }
 
 function formatPrice(n: number) {
+  if (n == null || isNaN(n)) return "--";
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -32,7 +33,7 @@ export function ValidationPanel({ validations, currentPrice, timestamp }: Valida
         </div>
       </div>
       <div className="text-[10px] text-[var(--fg-muted)] mb-3">
-        Validated at: {new Date(timestamp).toLocaleString()} | Current: ${formatPrice(currentPrice)}
+        验证时间: {new Date(timestamp).toLocaleString()} | 当前价: ${formatPrice(currentPrice)}
       </div>
       <div className="space-y-1.5">
         {validations.map((v) => (

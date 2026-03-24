@@ -12,10 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.prediction import PredictionRecord
 from app.clients.binance_client import get_binance_client
 
-# Timeframe → minutes
-TF_MINUTES = {
-    "5m": 5, "30m": 30, "1h": 60, "2h": 120, "4h": 240,
-    "8h": 480, "12h": 720, "24h": 1440,
+# Base mappings
+tf_mins = {
+    "5m": 5, "15m": 15, "30m": 30, "1h": 60,
+    "2h": 120, "4h": 240, "12h": 720, "1d": 1440,
 }
 
 
@@ -98,7 +98,7 @@ class BacktestService:
         skipped = 0
 
         for pred in predictions:
-            tf_minutes = TF_MINUTES.get(pred.get("timeframe"))
+            tf_minutes = tf_mins.get(pred.get("timeframe"))
             if not tf_minutes:
                 skipped += 1
                 continue
@@ -290,8 +290,8 @@ class BacktestService:
                 "avg_error": round(float(tf_row.avg_error or 0), 2),
             })
 
-        # Sort timeframes (fix: add 5m)
-        tf_order = {"5m": 0, "30m": 1, "1h": 2, "2h": 3, "4h": 4, "8h": 5, "12h": 6, "24h": 7}
+        # Sort properly by timeframe severity
+        tf_order = {"5m": 0, "15m": 1, "30m": 2, "1h": 3, "2h": 4, "4h": 5, "12h": 6, "1d": 7}
         by_timeframe.sort(key=lambda x: tf_order.get(x["timeframe"], 8))
 
         # By direction

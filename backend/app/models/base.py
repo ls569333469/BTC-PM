@@ -55,8 +55,30 @@ async def get_db() -> AsyncSession:
 
 
 async def init_db():
-    """Create all tables on startup."""
+    """Create all tables on startup + migrate new columns."""
     from app.models.prediction import PredictionRecord  # noqa: F401
     engine = get_engine()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Migrate: add new columns for 3-track backtest (Phase 3)
+    new_columns = [
+        ("chanlun_win_rate", "INTEGER"),
+        ("chanlun_direction", "VARCHAR"),
+        ("factor_win_rate", "INTEGER"),
+        ("factor_direction", "VARCHAR"),
+        ("composite_win_rate", "INTEGER"),
+        ("composite_direction", "VARCHAR"),
+        ("factor_direction_correct", "BOOLEAN"),
+        ("composite_action_correct", "BOOLEAN"),
+    ]
+    async with engine.begin() as conn:
+        for col_name, col_type in new_columns:
+            try:
+                await conn.execute(
+                    __import__("sqlalchemy").text(
+                        f"ALTER TABLE prediction_records ADD COLUMN {col_name} {col_type}"
+                    )
+                )
+            except Exception:
+                pass  # Column already exists

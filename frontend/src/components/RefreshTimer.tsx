@@ -12,19 +12,29 @@ export function RefreshTimer({ intervalMs, lastUpdated, onRefresh, isRefreshing 
   const [remaining, setRemaining] = useState(intervalMs / 1000);
   const intervalRef = useRef<number | null>(null);
 
+  const getSecondsUntilNextEpoch = () => {
+    const now = new Date();
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+    // Calculate distance to the next 5-minute boundary (e.g. 05, 10, 15)
+    // We add a tiny epsilon to handle exactly 00:00 boundary crossovers gracefully
+    const nextBoundaryMinute = Math.ceil((minutes + 0.1) / 5) * 5;
+    return (nextBoundaryMinute - minutes) * 60 - seconds;
+  };
+
   useEffect(() => {
-    setRemaining(intervalMs / 1000);
+    // Initialize immediately
+    setRemaining(getSecondsUntilNextEpoch());
+    
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = window.setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) return intervalMs / 1000;
-        return prev - 1;
-      });
+      setRemaining(getSecondsUntilNextEpoch());
     }, 1000);
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [intervalMs, lastUpdated]);
+  }, []);
 
   const mins = Math.floor(remaining / 60);
   const secs = Math.floor(remaining % 60);
@@ -64,7 +74,7 @@ export function RefreshTimer({ intervalMs, lastUpdated, onRefresh, isRefreshing 
         onClick={onRefresh}
         disabled={isRefreshing}
         className="toolbar-btn"
-        title="Refresh now"
+        title="立即刷新"
       >
         <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
       </button>

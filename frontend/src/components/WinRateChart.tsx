@@ -120,8 +120,8 @@ export function WinRateChart({ predictions }: WinRateChartProps) {
 
   return (
     <ChartCard
-      title="Win Rate by Timeframe"
-      subtitle="Prediction confidence distribution"
+      title="各时间框架胜率"
+      subtitle="预测置信度分布"
       onExportPng={handleExportPng}
       onExportCsv={handleExportCsv}
     >

@@ -117,15 +117,14 @@ def score_volume(volumes: np.ndarray) -> FactorScore:
     if historical_avg == 0:
         return FactorScore("volume", 0.0, 0.5, "neutral", "无成交量数据")
 
-    ratio = recent_avg / historical_avg
-
-    if ratio > 2.0:
-        return FactorScore("volume", 2.0, 0.5, "up", f"放量{ratio:.1f}倍 — 强势动量")
-    elif ratio > 1.3:
-        return FactorScore("volume", 1.0, 0.5, "up", f"温和放量{ratio:.1f}倍")
-    elif ratio < 0.5:
-        return FactorScore("volume", -1.0, 0.5, "down", f"缩量{ratio:.1f}倍 — 信心不足")
-    return FactorScore("volume", 0.0, 0.5, "neutral", f"正常量能{ratio:.1f}倍")
+    # 连续化体积函数 (以2为底的对数变化率)
+    import math
+    ratio = max(0.01, recent_avg / historical_avg)  # 防无限小
+    raw_score = math.log2(ratio) * 1.5
+    score = max(-3.0, min(3.0, raw_score))
+    
+    direction = "up" if score > 0.5 else ("down" if score < -0.5 else "neutral")
+    return FactorScore("volume", round(score, 2), 0.5, direction, f"量能比 {ratio:.2f}x (对数分 {score:.2f})")
 
 
 # ── Factor 3: Bollinger Bands ──
@@ -143,35 +142,26 @@ def score_bbands(closes: np.ndarray) -> FactorScore:
     bandwidth = (upper[-1] - lower[-1]) / middle[-1] if middle[-1] > 0 else 0
     position = (price - lower[-1]) / (upper[-1] - lower[-1]) if (upper[-1] - lower[-1]) > 0 else 0.5
 
-    score = 0.0
-    direction = "neutral"
-    details = []
+    # 连续化布林带函数 (0.5 为中轴，0 为下轨超卖(买入)，1 为上轨超买(卖出))
+    # 偏离度 = 0.5 - position
+    # 当打到下轨(0)时偏离度 0.5 -> score = 3.0
+    # 当打到上轨(1)时偏离度 -0.5 -> score = -3.0
+    raw_score = (0.5 - position) / 0.5 * 3.0
+    
+    # 根据波动率(开口大小)进行动能放大
+    if bandwidth > 0.08:
+        raw_score *= 1.2  # 开口放大偏离极值
+    elif bandwidth < 0.02:
+        raw_score *= 0.5  # 缩口压制偏离极值
+        
+    score = max(-3.0, min(3.0, raw_score))
+    direction = "up" if score > 1.0 else ("down" if score < -1.0 else "neutral")
+    
+    details = f"位置 {position:.0%} (带分 {score:.2f})"
+    if bandwidth < 0.02: details += " [缩口]"
+    elif bandwidth > 0.08: details += " [开口]"
 
-    if position > 0.95:
-        score = -2.0
-        direction = "down"
-        details.append(f"触及上轨({position:.0%})")
-    elif position > 0.8:
-        score = -1.0
-        direction = "down"
-        details.append(f"接近上轨({position:.0%})")
-    elif position < 0.05:
-        score = 2.0
-        direction = "up"
-        details.append(f"触及下轨({position:.0%})")
-    elif position < 0.2:
-        score = 1.0
-        direction = "up"
-        details.append(f"接近下轨({position:.0%})")
-    else:
-        details.append(f"中轨附近({position:.0%})")
-
-    if bandwidth < 0.02:
-        details.append("缩口 — 即将突破")
-    elif bandwidth > 0.08:
-        details.append("开口 — 高波动")
-
-    return FactorScore("bbands", score, 0.6, direction, "；".join(details))
+    return FactorScore("bbands", round(score, 2), 0.6, direction, details)
 
 
 # ── Factor 4: KDJ (替换RSI) ──
@@ -198,24 +188,22 @@ def score_kdj(highs: np.ndarray, lows: np.ndarray, closes: np.ndarray) -> Factor
     golden_cross = j_prev < k_prev and j_val > k_val  # J上穿K
     death_cross = j_prev > k_prev and j_val < k_val   # J下穿K
 
-    if j_val > 90:
-        return FactorScore("kdj", -2.5, 0.7, "down", f"J={j_val:.0f} 极度超买")
-    elif j_val > 80:
-        if death_cross:
-            return FactorScore("kdj", -2.0, 0.7, "down", f"J={j_val:.0f} 超买+死叉 — 强卖出信号")
-        return FactorScore("kdj", -1.5, 0.7, "down", f"J={j_val:.0f} 超买")
-    elif j_val < 10:
-        return FactorScore("kdj", 2.5, 0.7, "up", f"J={j_val:.0f} 极度超卖")
-    elif j_val < 20:
-        if golden_cross:
-            return FactorScore("kdj", 2.0, 0.7, "up", f"J={j_val:.0f} 超卖+金叉 — 强买入信号")
-        return FactorScore("kdj", 1.5, 0.7, "up", f"J={j_val:.0f} 超卖")
-    else:
-        if golden_cross:
-            return FactorScore("kdj", 1.0, 0.7, "up", f"J={j_val:.0f} 金叉")
-        elif death_cross:
-            return FactorScore("kdj", -1.0, 0.7, "down", f"J={j_val:.0f} 死叉")
-        return FactorScore("kdj", 0.0, 0.7, "neutral", f"J={j_val:.0f} K={k_val:.0f} 中性")
+    # 连续化 KDJ 函数 (J 均值 50)
+    # J = 0 -> score 3.0 (极度超卖看涨)
+    # J = 100 -> score -3.0 (极度超买看跌)
+    raw_score = (50.0 - j_val) / 50.0 * 2.5
+    
+    # 金叉死叉动能附加
+    if golden_cross:
+        raw_score += 1.0
+    elif death_cross:
+        raw_score -= 1.0
+        
+    score = max(-3.0, min(3.0, raw_score))
+    direction = "up" if score > 1.0 else ("down" if score < -1.0 else "neutral")
+    
+    status = "金叉" if golden_cross else ("死叉" if death_cross else "平稳")
+    return FactorScore("kdj", round(score, 2), 0.7, direction, f"J={j_val:.0f} [{status}] (分 {score:.2f})")
 
 
 # ── Factor 5: SAR (替换恐惧贪婪) ──
@@ -239,22 +227,19 @@ def score_sar(highs: np.ndarray, lows: np.ndarray, closes: np.ndarray) -> Factor
     curr_above = price > sar_val
     just_flipped = prev_above is not None and prev_above != curr_above
 
-    if curr_above:
-        # 价格在SAR上方 = 上升趋势
-        if just_flipped:
-            return FactorScore("sar", 2.5, 0.6, "up", f"SAR刚翻多 — 趋势反转看涨 (偏离{gap_pct:+.1f}%)")
-        elif gap_pct > 1.5:
-            return FactorScore("sar", 2.0, 0.6, "up", f"SAR稳定看涨 (偏离{gap_pct:+.1f}%)")
-        else:
-            return FactorScore("sar", 1.0, 0.6, "up", f"SAR看涨但接近 (偏离{gap_pct:+.1f}%)")
-    else:
-        # 价格在SAR下方 = 下降趋势
-        if just_flipped:
-            return FactorScore("sar", -2.5, 0.6, "down", f"SAR刚翻空 — 趋势反转看跌 (偏离{gap_pct:+.1f}%)")
-        elif gap_pct < -1.5:
-            return FactorScore("sar", -2.0, 0.6, "down", f"SAR稳定看跌 (偏离{gap_pct:+.1f}%)")
-        else:
-            return FactorScore("sar", -1.0, 0.6, "down", f"SAR看跌但接近 (偏离{gap_pct:+.1f}%)")
+    # 连续化 SAR 函数
+    # gap_pct = (price - sar) / price * 100
+    # 只要在上方 (gap_pct > 0)，就是上涨趋势。间距越大越稳。
+    raw_score = gap_pct * 1.5  # 例如 2% 的偏离度 = 3.0 分满分
+    
+    if just_flipped:
+        raw_score += 1.5 if curr_above else -1.5  # 翻转瞬间给极强的爆发分附加
+        
+    score = max(-3.0, min(3.0, raw_score))
+    direction = "up" if score > 0.5 else ("down" if score < -0.5 else "neutral")
+    
+    status = "刚翻转" if just_flipped else "稳态"
+    return FactorScore("sar", round(score, 2), 0.6, direction, f"SAR{status} 偏离{gap_pct:+.1f}% (分 {score:.2f})")
 
 
 # ── Factor 6: MFI (替换资金费率) ──
@@ -276,12 +261,10 @@ def score_mfi(highs: np.ndarray, lows: np.ndarray, closes: np.ndarray, volumes: 
     mfi_prev = float(mfi[-3]) if len(mfi) > 2 and not np.isnan(mfi[-3]) else mfi_val
     trend = "上升" if mfi_val > mfi_prev + 5 else ("下降" if mfi_val < mfi_prev - 5 else "平稳")
 
-    if mfi_val > 85:
-        return FactorScore("mfi", -2.5, 0.6, "down", f"MFI={mfi_val:.0f} 资金过热 — 可能回调 ({trend})")
-    elif mfi_val > 70:
-        return FactorScore("mfi", -1.0, 0.6, "down", f"MFI={mfi_val:.0f} 偏多 ({trend})")
-    elif mfi_val < 15:
-        return FactorScore("mfi", 2.5, 0.6, "up", f"MFI={mfi_val:.0f} 资金枯竭 — 可能反弹 ({trend})")
-    elif mfi_val < 30:
-        return FactorScore("mfi", 1.0, 0.6, "up", f"MFI={mfi_val:.0f} 偏空 ({trend})")
-    return FactorScore("mfi", 0.0, 0.6, "neutral", f"MFI={mfi_val:.0f} 均衡 ({trend})")
+    # 连续化 MFI 函数 (50 为中轴)
+    raw_score = (50.0 - mfi_val) / 50.0 * 3.0
+    
+    score = max(-3.0, min(3.0, raw_score))
+    direction = "up" if score > 1.0 else ("down" if score < -1.0 else "neutral")
+    
+    return FactorScore("mfi", round(score, 2), 0.6, direction, f"MFI={mfi_val:.0f} [{trend}] (分 {score:.2f})")

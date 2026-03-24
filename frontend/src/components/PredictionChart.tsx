@@ -85,7 +85,7 @@ export function PredictionChart({ predictions }: PredictionChartProps) {
       },
       series: [
         {
-          name: "Target",
+          name: "目标价",
           type: "line",
           data: targets,
           symbol: "circle",
@@ -93,21 +93,21 @@ export function PredictionChart({ predictions }: PredictionChartProps) {
           lineStyle: { width: 1.5 },
         },
         {
-          name: "Support",
+          name: "支撑位",
           type: "line",
           data: supports,
           symbol: "none",
           lineStyle: { width: 1, type: "dashed" as const },
         },
         {
-          name: "Resistance",
+          name: "阻力位",
           type: "line",
           data: resistances,
           symbol: "none",
           lineStyle: { width: 1, type: "dashed" as const },
         },
         {
-          name: "Current",
+          name: "当前价",
           type: "line",
           data: currents,
           symbol: "none",
@@ -128,7 +128,7 @@ export function PredictionChart({ predictions }: PredictionChartProps) {
   };
 
   const handleExportCsv = () => {
-    const headers = ["Timeframe", "Target", "Support", "Resistance", "Current"];
+    const headers = ["时间框架", "目标价", "支撑位", "阻力位", "当前价"];
     const rows = predictions.map((p) => [p.timeframe, p.targetPrice, p.support, p.resistance, p.currentPrice]);
     const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -142,8 +142,8 @@ export function PredictionChart({ predictions }: PredictionChartProps) {
 
   return (
     <ChartCard
-      title="Price Target Projection"
-      subtitle="Target, Support, Resistance by timeframe"
+      title="价格目标预测"
+      subtitle="各时间框架的目标价、支撑位与阻力位"
       onExportPng={handleExportPng}
       onExportCsv={handleExportCsv}
     >

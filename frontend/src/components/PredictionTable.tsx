@@ -1,5 +1,5 @@
 import type { Prediction, BettingGuide } from "../lib/chanlun";
-import { ArrowUp, ArrowDown, Minus, Target, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { ArrowUp, ArrowDown, Minus, Target, Lock } from "lucide-react";
 
 interface PredictionTableProps {
   predictions: Prediction[];
@@ -8,9 +8,9 @@ interface PredictionTableProps {
 }
 
 const directionConfig = {
-  up: { icon: ArrowUp, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "LONG" },
-  down: { icon: ArrowDown, color: "text-red-500", bg: "bg-red-500/10", label: "SHORT" },
-  sideways: { icon: Minus, color: "text-[var(--fg-muted)]", bg: "bg-[var(--bg-subtle)]", label: "HOLD" },
+  up: { icon: ArrowUp, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "做多" },
+  down: { icon: ArrowDown, color: "text-red-500", bg: "bg-red-500/10", label: "做空" },
+  sideways: { icon: Minus, color: "text-[var(--fg-muted)]", bg: "bg-[var(--bg-subtle)]", label: "观望" },
 } as const;
 
 const confidenceColor = {
@@ -29,39 +29,13 @@ function formatPriceShort(n: number) {
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
-// Map prediction timeframe to hours
-const tfToHours: Record<string, number> = {
-  "30m": 0.5, "1h": 1, "2h": 2, "4h": 4, "8h": 8, "12h": 12, "24h": 24,
-};
-
-// Find the best matching PM guide for a given prediction timeframe
+// Find the exact matching PM guide for a given prediction timeframe
 function findMatchingGuide(tf: string, guides: BettingGuide[]): BettingGuide | null {
   if (!guides || guides.length === 0) return null;
-  const hours = tfToHours[tf] ?? 1;
-  let best: BettingGuide | null = null;
-  let bestDist = Infinity;
-  for (const g of guides) {
-    const dist = Math.abs(g.hoursLeft - hours);
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = g;
-    }
-  }
-  return best;
+  return guides.find(g => g.timeframe.toLowerCase() === tf.toLowerCase()) || null;
 }
 
-const pmSignalConfig: Record<string, { color: string; bg: string; icon: typeof ArrowUp }> = {
-  // English keys (used in VIBE)
-  "BUY YES": { color: "text-emerald-500", bg: "bg-emerald-500/10", icon: ArrowUp },
-  "BUY NO": { color: "text-red-400", bg: "bg-red-500/10", icon: ArrowDown },
-  "HOLD": { color: "text-amber-500", bg: "bg-amber-500/10", icon: Minus },
-  // Chinese keys (returned by current backend)
-  "看涨买入": { color: "text-emerald-500", bg: "bg-emerald-500/10", icon: ArrowUp },
-  "看跌买入": { color: "text-red-400", bg: "bg-red-500/10", icon: ArrowDown },
-  "观望": { color: "text-amber-500", bg: "bg-amber-500/10", icon: Minus },
-};
 
-const defaultPmSignal = { color: "text-amber-500", bg: "bg-amber-500/10", icon: Minus };
 
 export function PredictionTable({ predictions, currentPrice, bettingGuides }: PredictionTableProps) {
   const hasGuides = bettingGuides && bettingGuides.length > 0;
@@ -93,13 +67,8 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
                 <th className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pb-2 pr-3">
                   <span className="inline-flex items-center gap-1">
                     <Target className="h-3 w-3" />
-                    PM 盘口
+                    基准价
                   </span>
-                </th>
-              )}
-              {hasGuides && (
-                <th className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pb-2 pr-3">
-                  PM 信号
                 </th>
               )}
               <th className="text-right text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pb-2 pr-3">
@@ -109,7 +78,7 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
                 涨跌幅
               </th>
               <th className="text-right text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pb-2 pr-3">
-                胜率
+                综合评分
               </th>
               <th className="text-right text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pb-2 pr-3">
                 支撑位
@@ -126,26 +95,7 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
               const guide = hasGuides ? findMatchingGuide(pred.timeframe, bettingGuides!) : null;
               const isUpDown = guide?.marketType === "updown";
 
-              // For strike markets: compare target vs base price
-              // For updown markets: use the guide's action directly
-              let pmAction: string = guide?.action ?? "HOLD";
-              let pmSub = "";
 
-              if (guide && !isUpDown && guide.basePrice && guide.basePrice > 0) {
-                // Strike market: compute delta
-                const pmDeltaPct = ((pred.targetPrice - guide.basePrice) / guide.basePrice) * 100;
-                if (pmDeltaPct > 0.15) pmAction = "BUY YES";
-                else if (pmDeltaPct < -0.15) pmAction = "BUY NO";
-                else pmAction = "HOLD";
-                pmSub = `${pmDeltaPct > 0 ? "+" : ""}${pmDeltaPct.toFixed(2)}%`;
-              } else if (guide && isUpDown) {
-                // Up/Down market: show edge
-                const edge = guide.aboveProb - (guide.marketUpProb ?? 50);
-                pmSub = `${edge > 0 ? "+" : ""}${edge.toFixed(1)}% edge`;
-              }
-
-              const pmCfg = pmSignalConfig[pmAction] || defaultPmSignal;
-              const PmIcon = pmCfg.icon;
 
               return (
                 <tr
@@ -153,9 +103,19 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
                   className="border-b border-[var(--border-base)] last:border-b-0 transition-colors duration-150 hover:bg-[var(--bg-subtle)]"
                 >
                   <td className="py-3 pr-3">
-                    <span className="font-mono text-xs font-bold text-[var(--fg-base)]">
-                      {pred.timeframe.toUpperCase()}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-xs font-bold text-[var(--fg-base)]">
+                        {pred.timeframe.toUpperCase()}
+                      </span>
+                      {pred.isDeadZone && (
+                        <div className="group relative flex items-center">
+                          <Lock className="w-3 h-3 text-[var(--fg-muted)] opacity-70 cursor-help" />
+                          <div className="absolute left-1/2 -top-7 -translate-x-1/2 px-2 py-1 bg-black/80 text-[10px] text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                            临近结算锁区 (Dead Zone)
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3 pr-3">
                     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold ${cfg.bg} ${cfg.color}`}>
@@ -165,64 +125,9 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
                   </td>
                   {hasGuides && (
                     <td className="py-3 pr-3 text-center">
-                      {guide ? (
-                        guide.marketUpProb != null && guide.marketDownProb != null ? (
-                          /* Live Polymarket data: show up/down probabilities */
-                          <div className="flex items-center justify-center gap-2">
-                            <div className="flex items-center gap-0.5">
-                              <ArrowUpCircle className="h-3 w-3 text-emerald-500" />
-                              <span className="font-mono text-[11px] font-semibold text-emerald-500">
-                                {guide.marketUpProb.toFixed(0)}%
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-0.5">
-                              <ArrowDownCircle className="h-3 w-3 text-red-400" />
-                              <span className="font-mono text-[11px] font-semibold text-red-400">
-                                {guide.marketDownProb.toFixed(0)}%
-                              </span>
-                            </div>
-                          </div>
-                        ) : guide.aboveProb != null ? (
-                          /* Fallback: show Chanlun-computed above probability */
-                          <div className="flex items-center justify-center gap-2">
-                            <div className="flex items-center gap-0.5">
-                              <ArrowUpCircle className={`h-3 w-3 ${guide.aboveProb >= 50 ? "text-emerald-500" : "text-red-400"}`} />
-                              <span className={`font-mono text-[11px] font-semibold ${guide.aboveProb >= 50 ? "text-emerald-500" : "text-red-400"}`}>
-                                {guide.aboveProb.toFixed(0)}%
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-0.5">
-                              <ArrowDownCircle className={`h-3 w-3 ${guide.aboveProb < 50 ? "text-red-400" : "text-emerald-500"}`} />
-                              <span className={`font-mono text-[11px] font-semibold ${guide.aboveProb < 50 ? "text-red-400" : "text-emerald-500"}`}>
-                                {(100 - guide.aboveProb).toFixed(0)}%
-                              </span>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-[var(--fg-muted)]">--</span>
-                        )
-                      ) : (
-                        <span className="text-[10px] text-[var(--fg-muted)]">--</span>
-                      )}
-                    </td>
-                  )}
-                  {hasGuides && (
-                    <td className="py-3 pr-3 text-center">
-                      {guide ? (
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${pmCfg.bg} ${pmCfg.color}`}>
-                            <PmIcon className="h-3 w-3" />
-                            {pmAction}
-                          </span>
-                          {pmSub && (
-                            <span className="font-mono text-[9px] text-[var(--fg-muted)]">
-                              {pmSub}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-[10px] text-[var(--fg-muted)]">--</span>
-                      )}
+                      <span className="font-mono text-[11px] text-[var(--fg-muted)] font-semibold">
+                        {guide && guide.basePrice ? `$${formatPrice(guide.basePrice)}` : '--'}
+                      </span>
                     </td>
                   )}
                   <td className="py-3 pr-3 text-right">

@@ -154,50 +154,85 @@ def analyze_with_chanpy(
             except Exception:
                 pass
 
-        # === 方向判断 ===
-        dir_score = 0.0
+        # === 连续物理方程式评分系统 (Phase 2 重构) ===
+        import math
+        raw_score = 0.0
 
-        # 1. 最后一笔方向
-        if bi_list:
-            last_bi = bi_list[-1]
-            if last_bi.dir.name == "UP":
-                dir_score += 0.4
-            else:
-                dir_score -= 0.4
-
-        # 2. 最后一段方向
-        if seg_list:
-            last_seg = seg_list[-1]
-            if last_seg.dir.name == "UP":
-                dir_score += 0.25
-            else:
-                dir_score -= 0.25
-
-        # 3. 买卖点信号 (最强)
-        for bsp in bsp_list[-3:]:
-            bsp_type = bsp["type"]
-            if "1" in bsp_type:  # 一类买卖点
-                dir_score += 0.5 if bsp["is_buy"] else -0.5
-            elif "2" in bsp_type:  # 二类
-                dir_score += 0.3 if bsp["is_buy"] else -0.3
-            elif "3" in bsp_type:  # 三类
-                dir_score += 0.2 if bsp["is_buy"] else -0.2
-
-        # 4. 价格与中枢的位置关系
+        # 1. 中枢偏离度引擎 (±30分)
+        z_score = 0.0
         if zs_list:
             last_zs = zs_list[-1]
-            if current_price > last_zs["high"]:
-                dir_score += 0.15  # 价格在中枢上方
-            elif current_price < last_zs["low"]:
-                dir_score -= 0.15  # 价格在中枢下方
+            zs_height = max(last_zs["high"] - last_zs["low"], 1e-8)  # 防止除以0
+            # 以中轴为0点，偏离高度的比例 (deviation=1 表示恰好在上沿)
+            deviation = (current_price - last_zs["center"]) / (zs_height * 0.5)
+            # 使用 tanh 平滑，极限为 ±30 (偏离2个高度时接近满分)
+            z_score = math.tanh(deviation / 2.0) * 30
+            raw_score += z_score
 
-        dir_score = max(-1.0, min(1.0, dir_score))
-        direction = "up" if dir_score > 0.1 else ("down" if dir_score < -0.1 else "sideways")
+        # 2. 笔动力学引擎 (±20分)
+        bi_score = 0.0
+        if bi_list and len(bi_list) >= 2:
+            last_bi = bi_list[-1]
+            current_amp = abs(last_bi.get_end_val() - last_bi.get_begin_val())
+            
+            # 统计前 10 笔平均振幅作为基底
+            recent_bis = bi_list[-11:-1]
+            if recent_bis:
+                avg_amp = np.mean([abs(b.get_end_val() - b.get_begin_val()) for b in recent_bis])
+                avg_amp = max(avg_amp, 1e-8)
+                ratio = current_amp / avg_amp
+                # 动量极限截断在 1.5 倍平均振幅 = 满分 20
+                momentum = min(1.0, ratio / 1.5) * 20
+            else:
+                momentum = 10
+            
+            bi_score = momentum if last_bi.dir.name == "UP" else -momentum
+            raw_score += bi_score
 
-        # 缠论评分 (0-100分制)
-        # 0分=完全没信号, 50分=中等信号, 100分=所有指标同向(极强)
-        win_rate = round(abs(dir_score) * 100)
-        win_rate = max(0, min(100, win_rate))
+        # 3. 线段基底推力 (±20分)
+        # 大势稳压器
+        seg_score = 0.0
+        if seg_list:
+            last_seg = seg_list[-1]
+            seg_score = 20 if last_seg.dir.name == "UP" else -20
+            raw_score += seg_score
+
+        # 4. 买卖点时间衰减核 (±30分)
+        bsp_score = 0.0
+        if hasattr(kl_data, 'bs_point_lst') and kl_data.bs_point_lst:
+            try:
+                raw_bsp = kl_data.bs_point_lst.getSortedBspList()
+                if raw_bsp:
+                    last_bsp = raw_bsp[-1]
+                    # 计算距离现在经过了多少根 K 线
+                    current_idx = kl_data[-1].idx if len(kl_data) > 0 else 0
+                    bsp_idx = last_bsp.klu.idx if hasattr(last_bsp, 'klu') else current_idx
+                    bars_since_bsp = max(0, current_idx - bsp_idx)
+                    
+                    # 强信号基础分
+                    base_bsp = 30
+                    bsp_type_str = last_bsp.type2str()
+                    if "1" in bsp_type_str: base_bsp = 30
+                    elif "2" in bsp_type_str: base_bsp = 20
+                    elif "3" in bsp_type_str: base_bsp = 15
+                    
+                    # 指数衰减: 半衰期设为 10 根 K线
+                    decay = math.exp(-bars_since_bsp / 10.0)
+                    bsp_score = base_bsp * decay
+                    if not last_bsp.is_buy:
+                        bsp_score = -bsp_score
+            except Exception as e:
+                logger.warning(f"BSP Decay Engine Error: {e}")
+        
+        raw_score += bsp_score
+
+        # 总局限死边界保证向量场不溢出
+        raw_score = max(-100.0, min(100.0, raw_score))
+        
+        # 兼容老板映射 (P4 Phase 4 将全面接管，此处为过渡)
+        dir_score = raw_score / 100.0
+        direction = "up" if raw_score > 35 else ("down" if raw_score < -35 else "sideways")
+        win_rate = round(abs(raw_score))
 
         # 支撑阻力
         support = resistance = None
@@ -287,16 +322,34 @@ def analyze_with_fallback(
     div = detect_divergence(bis, closes=closes)
     trend = analyze_trend(bis, zs, current_price)
 
-    # 映射为统一格式
-    dir_score = 0.0
-    if trend["trend"] == "bullish":
-        dir_score = 0.5
-    elif trend["trend"] == "bearish":
-        dir_score = -0.5
+    # 简版引擎的连续化映射
+    import math
+    raw_score = 0.0
 
-    direction = "up" if dir_score > 0.1 else ("down" if dir_score < -0.1 else "sideways")
-    win_rate = round(abs(dir_score) * 100)
-    win_rate = max(0, min(100, win_rate))
+    # 1. 中枢偏离度 (简版)
+    if zs:
+        last_zs = zs[-1]
+        zs_height = max(last_zs["high"] - last_zs["low"], 1e-8)
+        deviation = (current_price - last_zs["center"]) / (zs_height * 0.5)
+        raw_score += math.tanh(deviation / 2.0) * 30
+
+    # 2. 简版背离加成
+    if div.get("bottom_div"):
+        raw_score += 20
+    elif div.get("top_div"):
+        raw_score -= 20
+
+    # 3. 简版趋势
+    if trend["trend"] == "bullish":
+        raw_score += 30
+    elif trend["trend"] == "bearish":
+        raw_score -= 30
+
+    raw_score = max(-100.0, min(100.0, raw_score))
+    
+    dir_score = raw_score / 100.0
+    direction = "up" if raw_score > 35 else ("down" if raw_score < -35 else "sideways")
+    win_rate = round(abs(raw_score))
 
     return {
         "engine": "simple_fallback",

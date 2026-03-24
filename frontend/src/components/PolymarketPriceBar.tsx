@@ -9,6 +9,7 @@ interface PolymarketPriceBarProps {
 }
 
 function formatPrice(n: number) {
+  if (n == null || isNaN(n)) return "--";
   return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 

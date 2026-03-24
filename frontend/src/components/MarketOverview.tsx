@@ -6,6 +6,7 @@ interface MarketOverviewProps {
 }
 
 function formatPrice(n: number) {
+  if (n == null || isNaN(n)) return "--";
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -18,10 +19,10 @@ function formatCompact(n: number) {
 }
 
 const trendConfig = {
-  bullish: { icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "BULLISH" },
-  bearish: { icon: TrendingDown, color: "text-red-500", bg: "bg-red-500/10", label: "BEARISH" },
-  consolidating: { icon: Activity, color: "text-amber-500", bg: "bg-amber-500/10", label: "CONSOLIDATING" },
-  neutral: { icon: Minus, color: "text-[var(--fg-muted)]", bg: "bg-[var(--bg-subtle)]", label: "NEUTRAL" },
+  bullish: { icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "看涨" },
+  bearish: { icon: TrendingDown, color: "text-red-500", bg: "bg-red-500/10", label: "看跌" },
+  consolidating: { icon: Activity, color: "text-amber-500", bg: "bg-amber-500/10", label: "盘整" },
+  neutral: { icon: Minus, color: "text-[var(--fg-muted)]", bg: "bg-[var(--bg-subtle)]", label: "中性" },
 } as const;
 
 export function MarketOverview({ data }: MarketOverviewProps) {
@@ -29,57 +30,54 @@ export function MarketOverview({ data }: MarketOverviewProps) {
   const trendCfg = trendConfig[chanlun.trend] || trendConfig.neutral;
   const TrendIcon = trendCfg.icon;
 
-  // Calculate Fear & Greed label
-  let fgLabel = "--";
-  let fgColor = "text-[var(--fg-muted)]";
-  if (market.fearGreed != null) {
-    const fg = Number(market.fearGreed);
-    if (fg >= 80) { fgLabel = "Extreme Greed"; fgColor = "text-red-400"; }
-    else if (fg >= 60) { fgLabel = "Greed"; fgColor = "text-amber-500"; }
-    else if (fg >= 40) { fgLabel = "Neutral"; fgColor = "text-[var(--fg-muted)]"; }
-    else if (fg >= 20) { fgLabel = "Fear"; fgColor = "text-emerald-500"; }
-    else { fgLabel = "Extreme Fear"; fgColor = "text-emerald-500"; }
-  }
+
+
 
   const kpis = [
     {
-      label: "BTC Price",
+      label: "BTC 价格",
       value: `$${formatPrice(currentPrice)}`,
       sub: null,
     },
     {
-      label: "Chanlun Trend",
+      label: "缠论趋势",
       value: trendCfg.label,
-      sub: `Strength: ${chanlun.strength}%`,
+      sub: `强度: ${chanlun.strength}%`,
       customClass: trendCfg.color,
     },
     {
       label: "RSI (1H)",
       value: indicators.rsi != null ? indicators.rsi.toFixed(1) : "--",
       sub: indicators.rsi != null
-        ? indicators.rsi > 70 ? "Overbought" : indicators.rsi < 30 ? "Oversold" : "Neutral"
+        ? indicators.rsi > 70 ? "超买" : indicators.rsi < 30 ? "超卖" : "中性"
         : null,
       customClass: indicators.rsi != null
         ? indicators.rsi > 70 ? "text-red-400" : indicators.rsi < 30 ? "text-emerald-500" : undefined
         : undefined,
     },
     {
-      label: "Fear & Greed",
-      value: market.fearGreed != null ? String(Math.round(Number(market.fearGreed))) : "--",
-      sub: fgLabel,
-      customClass: fgColor,
+      label: "综合评分",
+      value: data.predictions?.[0]?.compositeWinRate != null
+        ? String(data.predictions[0].compositeWinRate)
+        : "--",
+      sub: data.predictions?.[0]?.scoreLevel || null,
+      customClass: data.predictions?.[0]?.compositeWinRate != null
+        ? data.predictions[0].compositeWinRate >= 80 ? "text-emerald-500"
+          : data.predictions[0].compositeWinRate >= 60 ? "text-amber-500"
+          : "text-red-400"
+        : undefined,
     },
     {
-      label: "Funding Rate",
+      label: "资金费率",
       value: market.futures?.funding_rate != null
         ? (Number(market.futures.funding_rate) * 100).toFixed(4) + "%"
         : "--",
       sub: market.futures?.funding_rate != null
-        ? Number(market.futures.funding_rate) > 0.01 ? "Long Heavy" : Number(market.futures.funding_rate) < -0.01 ? "Short Heavy" : "Balanced"
+        ? Number(market.futures.funding_rate) > 0.01 ? "多头过重" : Number(market.futures.funding_rate) < -0.01 ? "空头过重" : "均衡"
         : null,
     },
     {
-      label: "Open Interest",
+      label: "未平仓合约",
       value: market.futures?.open_interest != null
         ? "$" + formatCompact(Number(market.futures.open_interest))
         : "--",
