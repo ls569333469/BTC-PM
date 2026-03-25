@@ -48,11 +48,23 @@ def generate_prediction_for_tf(
     resistance = current_price + base_move
 
     # 2. Strict Chanlun Hub Overrides (True Physics)
+    # ⚠️ FIX: Prevent ancient distant ZhongShus from causing absolute target-lock
+    # Only allow ZhongShu gravity to pull if it is within 3x the local ATR
+    max_pull_distance = base_move * 3
+
     if nearest_zs:
-        if nearest_zs["low"] < current_price:
-            support = nearest_zs["low"]
-        if nearest_zs["high"] > current_price:
-            resistance = nearest_zs["high"]
+        zs_low = nearest_zs["low"]
+        zs_high = nearest_zs["high"]
+        zs_center = nearest_zs.get("center", current_price)
+        
+        if zs_low < current_price and (current_price - zs_low) <= max_pull_distance:
+            support = zs_low
+        if zs_high > current_price and (zs_high - current_price) <= max_pull_distance:
+            resistance = zs_high
+            
+        is_center_in_range = abs(current_price - zs_center) <= max_pull_distance
+    else:
+        is_center_in_range = False
 
     # 3. Dynamic Target Routing based on Momentum
     if direction == "up":
@@ -71,7 +83,7 @@ def generate_prediction_for_tf(
             target_price = support * 1.001
     else:
         # Sideways: Mean reversion towards the Chanlun center of gravity
-        if nearest_zs:
+        if nearest_zs and is_center_in_range:
             target_price = nearest_zs.get("center", current_price)
         else:
             target_price = current_price + (base_move * dir_modifier * 0.3)

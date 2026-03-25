@@ -226,6 +226,9 @@ export interface BettingGuide {
   strikeEventSlug?: string;
   volume?: number;
   marketCount?: number;
+  ptbSource?: string;  // P8: "oracle_exact" | "pm_api" | "oracle_nearest" | "ws" | "miss"
+  pmActionAdvice?: string;
+  spotMomentumDesc?: string;
 }
 
 export interface PolyStrike {

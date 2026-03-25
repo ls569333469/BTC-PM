@@ -48,10 +48,38 @@ def get_price_at(ts: int) -> Optional[float]:
         logger.error(f"Oracle DB Select Error: {e}")
         return None
 
+def get_nearest_price(ts: int, max_delta: int = 300) -> tuple[Optional[float], int]:
+    """P8: 查找 ts 附近最近的 Chainlink 记录（同源数据，比 Binance 准）。
+    
+    Returns: (price, offset_seconds) 或 (None, 0)
+    """
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=5.0)
+        row = conn.execute(
+            "SELECT timestamp, price FROM prices "
+            "WHERE timestamp >= ? AND timestamp <= ? "
+            "ORDER BY ABS(timestamp - ?) ASC LIMIT 1",
+            (ts - max_delta, ts + max_delta, ts)
+        ).fetchone()
+        conn.close()
+        if row:
+            return float(row[1]), row[0] - ts
+        return None, 0
+    except Exception as e:
+        logger.error(f"Oracle DB Nearest Select Error: {e}")
+        return None, 0
+
+# P8: WS 健康监控 — 30 秒无消息则主动断开重连
+_last_msg_ts = 0
+_reconnect_attempt = 0
+
 def _ws_listener_sync():
+    global _last_msg_ts, _reconnect_attempt
     init_db()
 
     def on_message(ws, message):
+        global _last_msg_ts
+        _last_msg_ts = time.time()
         try:
             data = json.loads(message)
             if data.get("topic") != "crypto_prices_chainlink":
@@ -75,7 +103,10 @@ def _ws_listener_sync():
             pass
 
     def on_open(ws):
-        logger.info("Oracle RTDS WebSocket Connected")
+        global _last_msg_ts, _reconnect_attempt
+        _last_msg_ts = time.time()
+        _reconnect_attempt = 0  # 连接成功，重置计数
+        logger.info("✅ Oracle RTDS WebSocket Connected")
         sub = {
             "action": "subscribe",
             "subscriptions": [{
@@ -101,10 +132,17 @@ def _ws_listener_sync():
                 on_error=on_error,
                 on_close=on_close
             )
+            # P8: 30 秒超时 — 如果 WS 静默（无消息），主动断开触发重连
             ws.run_forever(ping_interval=20, ping_timeout=10)
         except Exception as e:
-            logger.error(f"Oracle RTDS Disconnected: {e}. Reconnecting in 5s...")
-            time.sleep(5)
+            logger.error(f"Oracle RTDS Disconnected: {e}")
+        
+        # P8: 渐进式重连（1s → 2s → 5s → 10s → 5s 循环）
+        _reconnect_attempt += 1
+        delays = [1, 2, 5, 10, 5]
+        delay = delays[min(_reconnect_attempt - 1, len(delays) - 1)]
+        logger.info(f"🔄 Oracle WS reconnecting in {delay}s (attempt #{_reconnect_attempt})")
+        time.sleep(delay)
 
 def start_oracle_listener():
     """Starts the RTDS Oracle daemon thread."""

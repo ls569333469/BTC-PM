@@ -31,15 +31,16 @@ const actionConfig: Record<string, { icon: typeof TrendingUp; color: string; bg:
 };
 
 function rateColor(rate: number) {
-  if (rate >= 80) return "text-emerald-500";
-  if (rate >= 60) return "text-amber-500";
-  return "text-red-400";
+  const a = Math.abs(rate);
+  if (a >= 60) return rate > 0 ? "text-emerald-500" : "text-red-400";
+  if (a >= 35) return rate > 0 ? "text-emerald-500" : "text-red-400";
+  return "text-amber-500";
 }
 
 function rateBgColor(rate: number) {
-  if (rate >= 80) return "bg-emerald-500";
-  if (rate >= 60) return "bg-amber-500";
-  return "bg-red-400";
+  if (rate > 35) return "bg-emerald-500";
+  if (rate < -35) return "bg-red-400";
+  return "bg-amber-500";
 }
 
 function formatVolume(n: number) {
@@ -67,40 +68,32 @@ export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGui
       </div>
 
       <div className="overflow-x-auto -mx-6 px-6">
-        <table className="w-full min-w-[850px]">
-          <thead>
-            <tr className="border-b border-[var(--border-strong)]">
-              <th className="text-left text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pb-2 pr-3">
-                时间周期
-              </th>
-              <th className="text-left text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pb-2 pr-3">
-                信号
-              </th>
-              <th className="text-right text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pb-2 pr-3">
-                基准价
-              </th>
-              <th className="text-right text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pb-2 pr-3">
-                目标价
-              </th>
-              <th className="text-right text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pb-2 pr-3">
-                涨跌幅
-              </th>
-              <th className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pb-2 pr-3">
-                综合评分
-              </th>
-              <th className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pb-2 pr-3">
-                缠论
-              </th>
-              <th className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pb-2 pr-3">
-                因子
-              </th>
-              <th className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pb-2 pr-3">
-                方向状态
-              </th>
-              <th className="w-8 pb-2"></th>
-            </tr>
-          </thead>
-          <tbody>
+        <div className="grid mb-1 pb-1 border-b border-[var(--border-base)]" style={{ gridTemplateColumns: "5.4fr 5.2fr 32px" }}>
+          <div className="text-center text-[11px] font-bold text-rose-400/90 border-r border-[var(--border-base)] pr-4">
+            🎯 Polymarket 盘口结算预期
+          </div>
+          <div className="text-center text-[11px] font-bold text-amber-500/90 pl-4">
+            📊 当前价格技术面追踪 (5分钟刷新)
+          </div>
+          <div />
+        </div>
+
+        <div className="grid pb-2 border-b border-[var(--border-strong)]" style={{ gridTemplateColumns: "0.8fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 0.8fr 0.8fr 1.2fr 32px" }}>
+          <span className="text-left text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pl-1">时间周期</span>
+          <span className="text-right text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)]">盘口基准</span>
+          <span className="text-right text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pr-2">目标价</span>
+          <span className="text-right text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pr-6">PM盈亏比</span>
+          <span className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)]">PM建议</span>
+          
+          <span className="text-right text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] border-l border-[var(--border-subtle)] pl-4 pr-4">实时价格</span>
+          <span className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)]">综合评分</span>
+          <span className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)]">缠论</span>
+          <span className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)]">因子</span>
+          <span className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)]">状态</span>
+          <span className="w-8"></span>
+        </div>
+        
+        <div className="flex flex-col">
             {guides.map((guide) => {
               const ac = actionConfig[guide.action] || actionConfig["观望"];
               const ActionIcon = ac.icon;
@@ -112,18 +105,15 @@ export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGui
               const tf = timeframes.find((t) => t.timeframe === guide.timeframe);
 
               return (
-                <tr
+                <div
                   key={guide.timeframe}
                   className="border-b border-[var(--border-base)] last:border-b-0 group"
                 >
-                  {/* Main row wrapped in a single <td colSpan> trick: we use multiple <td> for header row alignment */}
-                  <td colSpan={10} className="p-0">
-                    {/* Clickable row */}
                     <button
                       onClick={() => setExpandedTf(isExpanded ? null : guide.timeframe)}
                       className="w-full text-left hover:bg-[var(--bg-subtle)] transition-colors"
                     >
-                      <div className="grid py-3 pr-3" style={{ gridTemplateColumns: "1fr 1fr 1.2fr 1.2fr 1fr 1.2fr 0.8fr 0.8fr 1fr 32px" }}>
+                      <div className="grid py-3 items-center" style={{ gridTemplateColumns: "0.8fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 0.8fr 0.8fr 1.2fr 32px" }}>
                         {/* 时间周期 */}
                         <div className="flex items-center pl-1">
                           <span className="font-mono text-sm font-bold text-[var(--fg-base)]">
@@ -131,30 +121,22 @@ export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGui
                           </span>
                         </div>
 
-                        {/* 信号 */}
-                        <div className="flex items-center">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${ac.bg} ${ac.color}`}>
-                            <ActionIcon className="h-3 w-3" />
-                            {ac.label}
-                          </span>
-                        </div>
-
-                        {/* 基准价 */}
+                        {/* PM 盘口基准价 */}
                         <div className="flex items-center justify-end">
                           <span className="font-mono text-sm text-[var(--fg-base)]">
                             ${guide.basePrice ? formatPrice(guide.basePrice) : "--"}
                           </span>
                         </div>
 
-                        {/* 目标价 */}
+                        {/* 预测目标价 */}
                         <div className="flex items-center justify-end">
                           <span className="font-mono text-sm font-bold text-[var(--fg-base)]">
                             ${formatPrice(guide.predictedPrice)}
                           </span>
                         </div>
 
-                        {/* 涨跌幅 */}
-                        <div className="flex items-center justify-end">
+                        {/* PM 盈亏比 */}
+                        <div className="flex items-center justify-end pr-6">
                           <span className={`font-mono text-sm font-bold ${
                             deltaPct > 0 ? "text-emerald-500" : deltaPct < 0 ? "text-red-400" : "text-[var(--fg-muted)]"
                           }`}>
@@ -162,16 +144,41 @@ export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGui
                           </span>
                         </div>
 
+                        {/* PM 建议 */}
+                        <div className="flex items-center justify-center">
+                          {guide.pmActionAdvice ? (
+                            <span className={`inline-flex items-center gap-1 font-semibold text-[11px] ${
+                              guide.pmActionAdvice.includes("胜算") || guide.pmActionAdvice.includes("优势") ? "text-emerald-500" :
+                              guide.pmActionAdvice.includes("风险") || guide.pmActionAdvice.includes("劣势") ? "text-red-400" :
+                              "text-amber-500"
+                            }`}>
+                              {guide.pmActionAdvice}
+                            </span>
+                          ) : (
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${ac.bg} ${ac.color}`}>
+                              <ActionIcon className="h-3 w-3" />
+                              {ac.label}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* 实时价格 (New) */}
+                        <div className="flex items-center justify-end pr-4 border-l border-[var(--border-subtle)] pl-4">
+                          <span className="font-mono text-sm font-semibold text-amber-500/80">
+                            ${guide.currentPrice ? formatPrice(guide.currentPrice) : "--"}
+                          </span>
+                        </div>
+
                         {/* 综合评分 */}
-                        <div className="flex items-center justify-center gap-1.5">
-                          <div className="w-10 h-1.5 rounded-full bg-[var(--bg-subtle)] overflow-hidden">
+                        <div className="flex items-center justify-center gap-1.5 pl-2">
+                          <div className="w-8 h-1.5 rounded-full bg-[var(--bg-subtle)] overflow-hidden hidden sm:block">
                             <div
                               className={`h-full rounded-full ${rateBgColor(compositeRate)}`}
-                              style={{ width: `${compositeRate}%` }}
+                              style={{ width: `${Math.min(Math.abs(compositeRate), 100)}%` }}
                             />
                           </div>
                           <span className={`font-mono text-sm font-bold ${rateColor(compositeRate)}`}>
-                            {compositeRate}
+                            {compositeRate > 0 ? "+" : ""}{compositeRate}
                           </span>
                         </div>
 
@@ -189,14 +196,17 @@ export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGui
                           </span>
                         </div>
 
-                        {/* 方向状态 */}
+                        {/* 状态 */}
                         <div className="flex items-center justify-center">
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                          <span className={`text-[10px] font-semibold px-1 py-0.5 rounded text-center leading-tight ${
+                            guide.spotMomentumDesc?.includes("强势看涨") ? "bg-emerald-500/10 text-emerald-500" :
+                            guide.spotMomentumDesc?.includes("压力") || guide.spotMomentumDesc?.includes("分歧") ? "bg-red-500/10 text-red-400" :
+                            guide.spotMomentumDesc?.includes("震荡") || guide.spotMomentumDesc?.includes("多头抵抗") ? "bg-amber-500/10 text-amber-500" :
                             guide.dirStatus?.includes("同向") ? "bg-emerald-500/10 text-emerald-500" :
                             guide.dirStatus?.includes("矛盾") ? "bg-red-500/10 text-red-400" :
                             "bg-[var(--bg-subtle)] text-[var(--fg-muted)]"
                           }`}>
-                            {guide.dirStatus || guide.scoreLevel || "--"}
+                            {guide.spotMomentumDesc || guide.dirStatus || guide.scoreLevel || "--"}
                           </span>
                         </div>
 
@@ -228,10 +238,10 @@ export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGui
                             subColor={guide.predictedDelta > 0 ? "text-emerald-500" : guide.predictedDelta < 0 ? "text-red-400" : undefined}
                           />
                           <DetailCell
-                            label="看涨概率"
-                            value={`${guide.aboveProb}%`}
-                            sub={guide.aboveProb >= 60 ? "偏多" : guide.aboveProb <= 40 ? "偏空" : "中性"}
-                            subColor={guide.aboveProb >= 60 ? "text-emerald-500" : guide.aboveProb <= 40 ? "text-red-400" : undefined}
+                            label="缠论评分"
+                            value={`${chanlunRate > 0 ? "+" : ""}${chanlunRate}`}
+                            sub={chanlunRate > 35 ? "看涨" : chanlunRate < -35 ? "看跌" : "横盘"}
+                            subColor={chanlunRate > 35 ? "text-emerald-500" : chanlunRate < -35 ? "text-red-400" : undefined}
                           />
                           <DetailCell
                             label="剩余时间"
@@ -287,12 +297,10 @@ export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGui
                         </div>
                       </div>
                     )}
-                  </td>
-                </tr>
+                </div>
               );
             })}
-          </tbody>
-        </table>
+        </div>
       </div>
     </div>
   );

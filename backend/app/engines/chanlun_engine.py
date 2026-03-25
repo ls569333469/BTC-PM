@@ -64,6 +64,10 @@ def analyze_with_chanpy(
             "15m": KL_TYPE.K_15M,
             "30m": KL_TYPE.K_30M,
             "1h": KL_TYPE.K_60M,
+            "2h": KL_TYPE.K_60M,   # No native 2H type; use 60M as container
+            "4h": KL_TYPE.K_60M,   # No native 4H type; use 60M as container
+            "12h": KL_TYPE.K_60M,  # No native 12H type; use 60M as container
+            "1d": KL_TYPE.K_DAY,   # Daily K-lines must use K_DAY
         }
         kl_type = kl_type_map.get(timeframe, KL_TYPE.K_60M)
 
@@ -295,6 +299,7 @@ def analyze_with_fallback(
     klines: list[dict],
     current_price: float,
     closes: Optional[np.ndarray] = None,
+    timeframe: str = "1h",
 ) -> dict:
     """
     先用 chan.py，失败则降级到简版
@@ -303,7 +308,7 @@ def analyze_with_fallback(
         dict: 分析结果，包含 engine 字段标识使用了哪个引擎
     """
     # 尝试 chan.py
-    result = analyze_with_chanpy(klines, current_price)
+    result = analyze_with_chanpy(klines, current_price, timeframe=timeframe)
     if result is not None:
         return result
 

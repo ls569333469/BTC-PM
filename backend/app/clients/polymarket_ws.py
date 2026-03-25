@@ -55,6 +55,15 @@ async def _ws_loop():
                                 price = float(payload.get("value") or 0)
                                 now_sec = int(time.time())
                                 
+                                # P8: 双写 Oracle SQLite（与 oracle_service 同步线程互为备份）
+                                try:
+                                    oracle_ts_ms = payload.get("timestamp")
+                                    oracle_ts = int(oracle_ts_ms) // 1000 if oracle_ts_ms else now_sec
+                                    from app.services.oracle_service import save_price
+                                    save_price(oracle_ts, price)
+                                except Exception:
+                                    pass
+                                
                                 # Process all pending slugs
                                 for slug, info in _PTB_CACHE.items():
                                     start_ts = info["start_ts"]

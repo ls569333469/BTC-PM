@@ -212,22 +212,32 @@ class PolymarketService:
             predicted_delta = predicted_price - base_price
             predicted_delta_pct = (predicted_delta / base_price * 100) if base_price else 0
 
-            if abs(predicted_delta_pct) < 0.1:
-                above_prob = 50.0  
-            elif predicted_delta > 0:
-                above_prob = float(composite_win_rate)  
+            # above_prob: 缠论方向置信度（不是 PM 赔率）
+            abs_score = abs(composite_win_rate)
+            if composite_direction == "up":
+                above_prob = round(50 + abs_score / 2, 1)  # 50~100
+            elif composite_direction == "down":
+                above_prob = round(50 - abs_score / 2, 1)  # 0~50
             else:
-                above_prob = float(100 - composite_win_rate)  
+                above_prob = 50.0
             above_prob = round(max(5, min(95, above_prob)), 1)
 
-            if composite_win_rate >= 60 and composite_direction == "up":
+            if abs_score >= 60 and composite_direction == "up":
                 action = "看涨买入"
-            elif composite_win_rate >= 60 and composite_direction == "down":
+            elif abs_score >= 60 and composite_direction == "down":
                 action = "看跌买入"
             else:
                 action = "观望"
 
-            score_level = "极佳" if composite_win_rate >= 80 or composite_win_rate <= 20 else "良好" if composite_win_rate >= 60 or composite_win_rate <= 40 else "中性"
+            # P8: sideways 方向强制 "中性"，避免低分被误标为 "极佳"
+            if composite_direction == "sideways":
+                score_level = "中性"
+            elif abs_score >= 80:
+                score_level = "极佳"
+            elif abs_score >= 60:
+                score_level = "良好"
+            else:
+                score_level = "中性"
             score_desc = "趋势强烈可建仓" if score_level == "极佳" else "部分资金可试探" if score_level == "良好" else "方向不明建议观望"
 
             if chanlun_dir == factor_dir and chanlun_dir != "sideways":
@@ -240,6 +250,33 @@ class PolymarketService:
                 dir_status = "方向矛盾"
             else:
                 dir_status = "因子中性"
+
+            # ---- P9 Dual Reference Enhancements ----
+            spot_momentum_desc = ""
+            if composite_direction == "up":
+                if chanlun_dir == "down" or factor_dir == "down":
+                    spot_momentum_desc = "上升分歧"
+                else:
+                    spot_momentum_desc = "强势看涨"
+            elif composite_direction == "down":
+                if chanlun_dir == "up" or factor_dir == "up":
+                    spot_momentum_desc = "多头抵抗"
+                else:
+                    spot_momentum_desc = "回调压力"
+            else:
+                spot_momentum_desc = "高位震荡"
+                
+            pm_action_advice = "— 观望"
+            if predicted_delta_pct > 1.5:
+                pm_action_advice = "↑ 高胜算局"
+            elif predicted_delta_pct > 0.5:
+                pm_action_advice = "↑ 盘口优势"
+            elif predicted_delta_pct < -1.5:
+                pm_action_advice = "↓ 高风险局"
+            elif predicted_delta_pct < -0.5:
+                pm_action_advice = "↓ 盘口劣势"
+            else:
+                pm_action_advice = "— 盘口震荡"
 
             factors = []
             factors.append(f"综合评分 {composite_win_rate}/100 — {score_level}")
@@ -258,10 +295,7 @@ class PolymarketService:
                 reason = f"{score_level} — {score_desc}，{dir_status}"
 
             guide_win_rate = composite_win_rate
-            if market_up_prob is not None and action == "看涨买入":
-                guide_win_rate = round((composite_win_rate + market_up_prob) / 2)
-            elif market_down_prob is not None and action == "看跌买入":
-                guide_win_rate = round((composite_win_rate + market_down_prob) / 2)
+            # PM 概率不再融合到 guide_win_rate，仅保留缠论评分
 
             guides.append({
                 "timeframe": chanlun_tf,
@@ -284,10 +318,13 @@ class PolymarketService:
                 "marketType": "updown" if market_up_prob is not None else ("strike" if tf_data else ""),
                 "marketUpProb": market_up_prob,
                 "marketDownProb": market_down_prob,
+                "pmActionAdvice": pm_action_advice,
+                "spotMomentumDesc": spot_momentum_desc,
                 "reason": reason,
                 "factors": factors,
                 "volume": tf_data.get("volume", 0),
                 "marketCount": tf_data.get("marketCount", 0),
+                "ptbSource": tf_data.get("ptbSource", "ws") if tf_data else "",
                 "isFallback": not bool(tf_data)
             })
 
@@ -296,29 +333,62 @@ class PolymarketService:
     async def _generate_fallback_guides(self, analysis: dict | None = None) -> list[dict]:
         return []
 
-    async def _get_hybrid_oracle_price(self, start_ts: int) -> Optional[float]:
-        from app.services.oracle_service import get_price_at
-        from app.clients.binance_client import get_binance_client
-        import logging
+    async def _get_hybrid_oracle_price(
+        self, start_ts: int, variant: str = "fiveminute", duration_min: int = 5
+    ) -> tuple[Optional[float], str]:
+        """获取 Chainlink 基准价。返回 (price, source)。
         
-        # 1. Primary Oracle (100% Precision Chainlink Local DB)
+        Fallback 链：
+          1. Oracle SQLite 精确匹配 (±15s)
+          2. polymarket.com/api/crypto/crypto-price REST API (PM 内部 API)
+          3. Oracle SQLite 近似匹配 (±300s)
+          4. None → 前端显示缺失
+        """
+        from app.services.oracle_service import get_price_at, get_nearest_price
+        
+        # 1. Primary: Oracle SQLite 精确匹配
         ptb = get_price_at(start_ts)
         if ptb:
-            logging.info(f"🎯 Hybrid Oracle: Fetched {start_ts} from SQLite tracker: {ptb}")
-            return ptb
-            
-        # 2. Secondary Oracle (Binance Historical 1m K-Line Fallback)
+            logger.info(f"🎯 Oracle exact: ts={start_ts} ${ptb:,.2f}")
+            return ptb, "oracle_exact"
+        
+        # 2. PM crypto-price API (PM 网站内部接口，100% 准确)
         try:
-            logging.warning(f"⚠️ SQLite missed {start_ts}. Falling back to Binance historical Kline!")
-            b_client = get_binance_client()
-            klines = await b_client.get_klines("BTCUSDT", interval="1m", limit=1, start_time_ms=start_ts * 1000)
-            if klines:
-                ptb = float(klines[0]["open"])
-                logging.info(f"🛡️ Hybrid Oracle: Fallback Binance Open Price => {ptb}")
-                return ptb
+            from datetime import timedelta
+            start_utc = datetime.fromtimestamp(start_ts, tz=timezone.utc)
+            end_utc = start_utc + timedelta(minutes=duration_min)
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(
+                    "https://polymarket.com/api/crypto/crypto-price",
+                    params={
+                        "symbol": "BTC",
+                        "variant": variant,
+                        "eventStartTime": start_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        "endDate": end_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    },
+                    headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"},
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    open_price = data.get("openPrice")
+                    if open_price is not None:
+                        ptb = round(float(open_price), 2)
+                        logger.info(f"🌐 PM crypto-price API: ts={start_ts} ${ptb:,.2f} (variant={variant})")
+                        return ptb, "pm_api"
+                else:
+                    logger.warning(f"⚠️ PM crypto-price API HTTP {resp.status_code} for ts={start_ts}")
         except Exception as e:
-            logging.error(f"Binance Fallback Failed: {e}")
-        return None
+            logger.warning(f"⚠️ PM crypto-price API failed: {e}")
+        
+        # 3. Oracle SQLite 近似匹配 (±300s 同源 Chainlink)
+        nearest, offset = get_nearest_price(start_ts, max_delta=300)
+        if nearest:
+            logger.warning(f"⚠️ Oracle nearest: ts={start_ts} offset={offset:+d}s ${nearest:,.2f}")
+            return nearest, "oracle_nearest"
+        
+        # 4. 完全缺失
+        logger.error(f"❌ PTB MISS: No source available for ts={start_ts}")
+        return None, "miss"
 
     # ── Timeframe fetchers ──
 
@@ -327,9 +397,10 @@ class PolymarketService:
         for s in slugs:
             data = await self._process_updown_market(s["slug"])
             if data and data.get("upProb") is not None:
-                ptb = await self._get_hybrid_oracle_price(s["start_ts"])
+                ptb, src = await self._get_hybrid_oracle_price(s["start_ts"], "fiveminute", 5)
                 if ptb:
                     data["priceToBeat"] = ptb
+                    data["ptbSource"] = src
                 return self._build_updown_tf(data)
         return None
 
@@ -338,9 +409,10 @@ class PolymarketService:
         for s in slugs:
             data = await self._process_updown_market(s["slug"])
             if data and data.get("upProb") is not None:
-                ptb = await self._get_hybrid_oracle_price(s["start_ts"])
+                ptb, src = await self._get_hybrid_oracle_price(s["start_ts"], "fifteen", 15)
                 if ptb:
                     data["priceToBeat"] = ptb
+                    data["ptbSource"] = src
                 return self._build_updown_tf(data)
         return None
 
@@ -372,9 +444,10 @@ class PolymarketService:
         for s in slugs:
             data = await self._process_updown_market(s["slug"])
             if data and data.get("upProb") is not None:
-                ptb = await self._get_hybrid_oracle_price(s["start_ts"])
+                ptb, src = await self._get_hybrid_oracle_price(s["start_ts"], "fourhour", 240)
                 if ptb:
                     data["priceToBeat"] = ptb
+                    data["ptbSource"] = src
                 return self._build_updown_tf(data)
         return None
 
@@ -656,6 +729,7 @@ class PolymarketService:
             "upProbPct": round(data["upProb"] * 100, 2) if data.get("upProb") is not None else None,
             "downProbPct": round(data["downProb"] * 100, 2) if data.get("downProb") is not None else None,
             "priceToBeat": data.get("priceToBeat"),
+            "ptbSource": data.get("ptbSource", "ws"),  # P8: 数据来源标记
             "upDownEventSlug": data.get("eventSlug"),
             "upDownTitle": data.get("title"),
             "upDownLink": data.get("link"),

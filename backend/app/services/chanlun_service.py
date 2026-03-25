@@ -90,19 +90,25 @@ class ChanlunService:
                 await asyncio.sleep(5)  # Backoff on error
 
     async def full_analysis(self, symbol: str = "BTC") -> dict:
-        """Returns the atomic cache snippet instantly, avoiding frontend-triggered latency."""
+        """Returns the atomic cache snippet instantly, with a 65-second failsafe TTL."""
         global _CACHE, _FULL_ANALYSIS_LOCK
         cache_key = f"full_analysis_{symbol}"
+        now = time.time()
         
-        # Fast path lockless check
+        # Fast path lockless check (failsafe TTL: 65s)
         if cache_key in _CACHE:
-            return _CACHE[cache_key][0]
+            cached_data, timestamp = _CACHE[cache_key]
+            if now - timestamp < 65:
+                # Cache is fresh
+                return cached_data
                 
-        # Cold start execution
+        # Cold start or Stale Execution
         async with _FULL_ANALYSIS_LOCK:
             if cache_key in _CACHE:
-                return _CACHE[cache_key][0]
-            logger.info("Cold starting Chanlun Engine analysis...")
+                cached_data, timestamp = _CACHE[cache_key]
+                if now - timestamp < 65:
+                    return cached_data
+            logger.info("Failsafe/Cold-start triggered for Chanlun Engine analysis...")
             return await self._force_analysis_update(symbol)
             
     async def _force_analysis_update(self, symbol: str) -> dict:
@@ -229,8 +235,8 @@ class ChanlunService:
                 if raw_score > 35: direction = "up"
                 elif raw_score < -35: direction = "down"
                 
-                win_rate = round(abs(raw_score))
-                win_rate = max(0, min(100, win_rate))
+                win_rate = round(raw_score)  # ±100 保留符号：负=看跌 正=看涨
+                win_rate = max(-100, min(100, win_rate))
                 score_level, score_desc = self._score_label(win_rate)
 
             pred = generate_prediction_for_tf(
@@ -247,11 +253,11 @@ class ChanlunService:
             )
             
             pred["factorScores"] = data["factor_scores"]
-            pred["chanlunWinRate"] = round(abs(data["chanlun_raw"]))
+            pred["chanlunWinRate"] = round(data["chanlun_raw"])  # ±100 保留符号
             pred["chanlunDirection"] = "up" if data["chanlun_raw"] > 0 else "down"
-            pred["factorWinRate"] = round(abs(data["factor_raw"]))
+            pred["factorWinRate"] = round(data["factor_raw"])    # ±100 保留符号
             pred["factorDirection"] = "up" if data["factor_raw"] > 0 else "down"
-            pred["compositeWinRate"] = win_rate
+            pred["compositeWinRate"] = win_rate  # ±100 保留符号
             pred["compositeDirection"] = direction
             pred["scoreLevel"] = score_level
             pred["scoreDesc"] = score_desc
@@ -368,9 +374,10 @@ class ChanlunService:
         }
 
     def _score_label(self, score):
-        if score >= 80: return ("强信号", "极高概率操作机会")
-        if score >= 60: return ("可操作", "动能较强，可择机操作")
-        if score >= 35: return ("中性偏强", "信号一般，轻仓观望")
+        s = abs(score)  # 只看强度，不看方向
+        if s >= 80: return ("强信号", "极高概率操作机会")
+        if s >= 60: return ("可操作", "动能较强，可择机操作")
+        if s >= 35: return ("中性偏强", "信号一般，轻仓观望")
         return ("观望", "信号死区，保持观望")
 
     def _compute_single_tf_raw(self, tf: str, klines: list, current_price: float) -> dict:
@@ -381,7 +388,7 @@ class ChanlunService:
         volumes = np.array([k["volume"] for k in klines], dtype=np.float64)
         
         indicators = self._compute_indicators(closes, highs, lows, volumes)
-        chanlun_res = analyze_with_fallback(klines, current_price, closes)
+        chanlun_res = analyze_with_fallback(klines, current_price, closes, timeframe=tf)
         
         factor_scores = compute_all_factors(closes, volumes, highs, lows, divergence=chanlun_res.get("divergence"))
         factor_composite, _ = compute_composite_score(factor_scores)
