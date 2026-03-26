@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>方案 B 优化版 - 全参数 & 哑光护眼调色</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        /* 极度护眼的暗色系底色 */
+                        binance: '#181a20',
+                        navy: '#0f172a',
+                        ink: '#09090b',
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'Fira Code', 'sans-serif'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #050505; color: #a1a1aa; font-family: 'Inter', sans-serif; }
+        
+        /* 10 行参数网格布局，高度还原前端真实结构 */
+        .grid-row-layout {
+            display: grid;
+            grid-template-columns: 80px 100px 100px 90px 100px     12px     100px 80px 60px 60px 80px 30px;
+            align-items: center;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 space-y-24 max-w-[1400px] mx-auto text-[13px]">
+
+    <div>
+        <h1 class="text-3xl font-bold mb-3 text-gray-200">方案 B 进化版：100% 参数还原 + 哑光护眼调色</h1>
+        <p class="text-gray-500 mb-8 max-w-4xl text-sm leading-relaxed">
+            收到反馈！我之前为了追求“极简”，错误地删减了原有的 10 列参数。现在我已**全盘恢复所有原有参数列**（时间周期、盘口基准、目标价、PM盈亏比、PM建议、实时价格、综合评分、缠论、因子、状态）！
+            <br/><br/>
+            同时，彻底抛弃了刺眼的霓虹发光色系。这 3 套新调色全部采用“Matte (哑光/护眼)”材质，极大降低了视觉疲劳感，适合高频盯盘。
+        </p>
+    </div>
+
+    <!-- ==========================================
+         Variant 4：Matte Graphite (哑光石墨 - 类似币安/OKX护眼版)
+         ========================================== -->
+    <div>
+        <div class="mb-4">
+            <h2 class="text-xl font-bold text-gray-300 flex items-center gap-2">
+                Variant 4: Matte Graphite (哑光石墨)
+            </h2>
+            <p class="text-sm text-gray-500 mt-1">主基调：最经典的交易所哑光灰底色 (#181a20)。红绿配色采用低饱和度（莫兰迪色系），完全不刺眼。</p>
+        </div>
+        
+        <div class="bg-binance rounded-xl border border-gray-800 overflow-hidden shadow-xl">
+            <!-- 头部 -->
+            <div class="grid-row-layout py-3 px-6 text-[11px] font-medium text-gray-500 border-b border-gray-800 bg-[#1e2026]">
+                <div>时间周期</div>
+                <div class="text-right">盘口基准</div>
+                <div class="text-right">目标价</div>
+                <div class="text-right">PM盈亏比</div>
+                <div class="text-center">PM建议</div>
+                <div class="text-center text-gray-800">|</div> <!-- 分隔线占位 -->
+                <div class="text-right">实时价格</div>
+                <div class="text-center">综合评分</div>
+                <div class="text-center">缠论</div>
+                <div class="text-center">因子</div>
+                <div class="text-center">状态</div>
+                <div></div>
+            </div>
+
+            <!-- 数据行: 1H 展开 -->
+            <div class="grid-row-layout py-4 px-6 items-center border-b border-gray-800 bg-[#1b1d24]">
+                <div class="font-mono text-gray-200 font-semibold">1 小时</div>
+                <div class="text-right font-mono text-gray-400">$69,562.41</div>
+                <div class="text-right font-mono text-gray-400">$69,562.34</div>
+                <div class="text-right font-mono text-gray-500">0.00%</div>
+                <div class="text-center font-bold text-[#b49e62]">建议观望</div>
+                
+                <div class="text-center text-gray-800">|</div>
+                
+                <div class="text-right font-mono text-[#eab308] font-semibold tracking-wide">$69,582.64</div>
+                <div class="text-center font-mono">
+                    <span class="text-[#eab308]">-24</span>
+                </div>
+                <div class="text-center font-mono text-[#ef4444]">-34</div>
+                <div class="text-center font-mono text-[#10b981]">38</div>
+                <div class="text-center">
+                    <span class="bg-[#2a2517] text-[#eab308] px-2 py-0.5 rounded text-[10px] border border-[#3f3621]">横盘震荡</span>
+                </div>
+                <div class="flex justify-end pr-2 text-gray-500">
+                    <svg class="w-4 h-4 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+
+            <!-- Expanded Pane: 玻璃悬浮化，无亮色 -->
+            <div class="p-4 bg-[#14151a]">
+                <div class="rounded-xl border border-gray-800 bg-[#181a20] p-5 flex flex-col md:flex-row gap-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+                    <div class="flex-1 border-r border-gray-800/80 pr-6">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-[#eab308] font-bold text-[13px] flex items-center gap-2">
+                                ⚡ 震荡死区 — 方向不明，严防画门
+                            </h3>
+                            <span class="text-gray-500 font-mono text-[11px] flex items-center gap-1">⌚ 45 分钟</span>
+                        </div>
+                        <p class="text-gray-400 text-xs leading-relaxed mt-3">
+                            当前呈现极致的引擎撕裂：缠论形态与六因子动能发生背离。这种指标级矛盾通常意味着盘口正在经历剧烈洗盘或到达伪趋势末端，强行切入存在极高“画门”风险。
+                        </p>
+                    </div>
+
+                    <div class="w-full md:w-72 pl-2">
+                        <div class="text-[11px] text-gray-500 font-semibold mb-3">盘口微观异动</div>
+                        <div class="space-y-2">
+                            <div class="bg-[#1b1d24] border border-gray-800 px-3 py-2 rounded flex items-center gap-2">
+                                <div class="w-1.5 h-1.5 rounded-full bg-gray-600"></div>
+                                <span class="text-gray-400 text-[11px]">中枢附近的区间偏离</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==========================================
+         Variant 5：Muted Slate (温和灰雪)
+         ========================================== -->
+    <div>
+        <div class="mb-4">
+            <h2 class="text-xl font-bold text-slate-300">
+                Variant 5: Muted Slate (温和灰雪)
+            </h2>
+            <p class="text-sm text-slate-500 mt-1">主基调：极为温柔的蓝灰色系统 (Slate)。对比度被适度降低，没有任何刺眼的纯黑或纯亮，营造一种安静的分析环境。</p>
+        </div>
+        
+        <div class="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-lg">
+            <!-- 头部 -->
+            <div class="grid-row-layout py-3 px-6 text-[11px] font-medium text-slate-500 border-b border-slate-800 bg-slate-900/50">
+                <div>时间周期</div>
+                <div class="text-right">盘口基准</div>
+                <div class="text-right">目标价</div>
+                <div class="text-right">PM盈亏比</div>
+                <div class="text-center">PM建议</div>
+                <div class="text-center text-slate-800">|</div>
+                <div class="text-right">实时价格</div>
+                <div class="text-center">综合评分</div>
+                <div class="text-center">缠论</div>
+                <div class="text-center">因子</div>
+                <div class="text-center">状态</div>
+                <div></div>
+            </div>
+
+            <!-- 数据行: 15M 收起 -->
+            <div class="grid-row-layout py-4 px-6 items-center border-b border-slate-800/60 hover:bg-slate-800/30">
+                <div class="font-mono text-slate-300 font-semibold">15 分钟</div>
+                <div class="text-right font-mono text-slate-400">$69,546.95</div>
+                <div class="text-right font-mono text-slate-400">$69,576.94</div>
+                <div class="text-right font-mono text-rose-400/80">-0.04%</div>
+                <div class="text-center font-bold text-rose-400/80 tracking-wide text-[12px]">↓ 盈亏比差</div>
+                
+                <div class="text-center text-slate-800">|</div>
+                
+                <div class="text-right font-mono text-amber-500/70 font-semibold">$69,582.64</div>
+                <div class="text-center font-mono">
+                    <span class="text-amber-500/70">-26</span>
+                </div>
+                <div class="text-center font-mono text-rose-400/80">-75</div>
+                <div class="text-center font-mono text-emerald-400/80">24</div>
+                <div class="text-center">
+                    <span class="bg-slate-800/80 text-slate-400 px-2 py-0.5 rounded text-[10px] border border-slate-700">空头压制</span>
+                </div>
+                <div class="flex justify-end pr-2 text-slate-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+
+             <!-- 数据行: 1H 展开 -->
+             <div class="grid-row-layout py-4 px-6 items-center border-b border-slate-800 bg-slate-800/20">
+                <div class="font-mono text-slate-200 font-semibold">1 小时</div>
+                <div class="text-right font-mono text-slate-400">$69,562.41</div>
+                <div class="text-right font-mono text-slate-400">$69,562.34</div>
+                <div class="text-right font-mono text-slate-500">0.00%</div>
+                <div class="text-center font-bold text-slate-400 tracking-wide text-[12px]">建议观望</div>
+                
+                <div class="text-center text-slate-800">|</div>
+                
+                <div class="text-right font-mono text-amber-500/80 font-semibold">$69,582.64</div>
+                <div class="text-center font-mono">
+                    <span class="text-amber-500/80">-24</span>
+                </div>
+                <div class="text-center font-mono text-rose-400/80">-34</div>
+                <div class="text-center font-mono text-emerald-400/80">38</div>
+                <div class="text-center">
+                    <span class="bg-slate-800/80 text-slate-400 px-2 py-0.5 rounded text-[10px] border border-slate-700">横盘震荡</span>
+                </div>
+                <div class="flex justify-end pr-2 text-slate-400">
+                    <svg class="w-4 h-4 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+
+            <!-- Expanded Pane: Slate Muted style -->
+            <div class="p-4 bg-slate-950/50">
+                <div class="rounded-xl border border-slate-800/80 bg-slate-900/80 p-5 flex flex-col md:flex-row gap-6 shadow-sm">
+                    <div class="flex-1 border-r border-slate-800 pr-6">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-slate-300 font-bold text-[13px] flex items-center gap-2">
+                                震荡死区 — 方向不明，严防画门
+                            </h3>
+                            <span class="text-slate-500 font-mono text-[11px] bg-slate-800/50 px-2 py-0.5 rounded border border-slate-800">45 分钟</span>
+                        </div>
+                        <p class="text-slate-400 leading-relaxed mt-2 text-xs">
+                            当前呈现极致的引擎撕裂：缠论形态与六因子动能发生背离。这种指标级矛盾通常意味着盘口正在经历剧烈洗盘或到达伪趋势末端，强行切入存在极高“画门”风险。
+                        </p>
+                    </div>
+
+                    <div class="w-full md:w-72 pl-2">
+                        <div class="text-[11px] text-slate-500 font-semibold mb-3">盘口微观异动</div>
+                        <div class="space-y-2">
+                            <div class="bg-slate-800/30 border border-slate-800/80 px-3 py-2 rounded text-slate-300 text-[11px] flex items-center gap-2">
+                                <div class="w-1.5 h-1.5 rounded-full bg-slate-500"></div>中枢附近的区间偏离
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==========================================
+         Variant 6：Institutional Monochrome (机构单色)
+         ========================================== -->
+    <div>
+        <div class="mb-4">
+            <h2 class="text-xl font-bold text-gray-400">
+                Variant 6: Terminal Monochrome (极简灰影)
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">主基调：彻底的高级感。去除一切块状背景色，仅使用黑、白、灰呈现，完全通过字体的粗细(Font Weight)和透明度(Opacity)来排版参数。</p>
+        </div>
+        
+        <div class="bg-ink border-y border border-gray-900 overflow-hidden shadow-2xl">
+            <!-- 头部 -->
+            <div class="grid-row-layout py-3 px-6 text-[10px] font-medium text-gray-600 border-b border-gray-900 bg-[#0c0c0e]">
+                <div>时间周期</div>
+                <div class="text-right">盘口基准</div>
+                <div class="text-right">目标价</div>
+                <div class="text-right">PM盈亏比</div>
+                <div class="text-center">PM建议</div>
+                <div class="text-center text-gray-800">|</div>
+                <div class="text-right">实时价格</div>
+                <div class="text-center">综合评分</div>
+                <div class="text-center">缠论</div>
+                <div class="text-center">因子</div>
+                <div class="text-center">状态</div>
+                <div></div>
+            </div>
+
+            <!-- 数据行: 1H 展开 -->
+            <div class="grid-row-layout py-4 px-6 items-center border-b border-gray-900 bg-[#0f0f12]">
+                <div class="font-mono text-gray-300 font-semibold">1 小时</div>
+                <div class="text-right font-mono text-gray-500">$69,562</div>
+                <div class="text-right font-mono text-gray-500">$69,562</div>
+                <div class="text-right font-mono text-gray-600">0.00%</div>
+                <div class="text-center font-bold text-gray-400 border border-gray-800 px-1 py-0.5 rounded text-[11px]">建议观望</div>
+                
+                <div class="text-center text-gray-800">|</div>
+                
+                <div class="text-right font-mono text-gray-300 font-semibold">$69,582</div>
+                <div class="text-center font-mono">
+                    <span class="text-gray-300">-24</span>
+                </div>
+                <div class="text-center font-mono text-gray-500">-34</div>
+                <div class="text-center font-mono text-gray-400">38</div>
+                <div class="text-center text-gray-500 text-[11px] font-medium">横盘震荡</div>
+                <div class="flex justify-end pr-2 text-gray-600">
+                    <svg class="w-4 h-4 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+
+            <!-- Expanded Pane: Monochrome style -->
+            <div class="p-5 bg-ink">
+                <div class="border border-gray-800/60 p-5 flex flex-col md:flex-row gap-6 relative">
+                    <!-- 左侧边线 -->
+                    <div class="absolute left-0 top-0 w-0.5 h-full bg-gray-700"></div>
+
+                    <div class="flex-1 border-r border-gray-900 pr-8 pl-2">
+                        <div class="flex justify-between items-center mb-3 border-b border-gray-900 pb-2">
+                            <h3 class="text-gray-300 font-bold text-[13px] tracking-wide">
+                                方向不明，严防画门
+                            </h3>
+                            <span class="text-gray-600 font-mono text-[11px]">T-45M</span>
+                        </div>
+                        <p class="text-gray-500 text-xs leading-relaxed mt-2">
+                            当前呈现极致的引擎撕裂：缠论形态与六因子动能发生背离。这种指标级矛盾通常意味着盘口正在经历剧烈洗盘或到达伪趋势末端，强行切入存在高风险。
+                        </p>
+                    </div>
+
+                    <div class="w-full md:w-72">
+                        <div class="text-[10px] text-gray-600 font-bold uppercase tracking-widest mb-3">Anomalies</div>
+                        <div class="space-y-2">
+                            <div class="border border-gray-800 bg-[#0c0c0e] px-3 py-1.5 text-gray-400 text-[11px] flex items-center justify-between">
+                                <span>中枢偏离</span>
+                                <span class="text-gray-600">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

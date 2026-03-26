@@ -12,7 +12,6 @@ import { PredictionChart } from "./components/PredictionChart";
 import { WinRateChart } from "./components/WinRateChart";
 import { TriggerPanel } from "./components/TriggerPanel";
 import { ValidationPanel } from "./components/ValidationPanel";
-import { PolymarketPanel } from "./components/PolymarketPanel";
 import { RefreshTimer } from "./components/RefreshTimer";
 import { BacktestPanel } from "./components/BacktestPanel";
 import { PolymarketGuide } from "./components/PolymarketGuide";
@@ -196,16 +195,11 @@ export default function App() {
               </ErrorBoundary>
             )}
 
-            {/* Triggers + simple Polymarket fallback row */}
-            <div className={`grid grid-cols-1 ${polymarketData?.guides?.length ? '' : 'lg:grid-cols-2'} gap-4`}>
+            {/* Triggers Row */}
+            <div className="grid grid-cols-1 gap-4">
               <ErrorBoundary>
                 <TriggerPanel predictions={analysis.predictions} />
               </ErrorBoundary>
-              {!(polymarketData?.guides?.length) && (
-                <ErrorBoundary>
-                  <PolymarketPanel trend={analysis.chanlun.trend} />
-                </ErrorBoundary>
-              )}
             </div>
 
             {/* Backtest Statistics */}

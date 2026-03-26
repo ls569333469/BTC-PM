@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polymarket UI 设计提案 - 3大方向预览</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: '#E0A800',  // 琥珀/暗金色
+                        surface: '#111318', // 极深蓝灰
+                        subtle: '#1A1D24',  // 略微凸起的底色
+                        border: '#2A2E39',
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0A0C10; color: #E5E7EB; font-family: 'Inter', sans-serif; }
+        .glass-panel { background: rgba(26, 29, 36, 0.4); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass-panel-heavy { background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 32px 0 rgba(0,0,0,0.3); }
+        /* 避免长文本过早导致折行 */
+        p.text-xs { white-space: pre-line; word-break: break-all;}
+    </style>
+</head>
+<body class="p-8 space-y-20">
+
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold mb-2">Polymarket 预测面板 UI 升级提案</h1>
+        <p class="text-gray-400 mb-10">请游览以下 3 种不同风格的设计方案。针对“PM建议”的措辞已全部修改为更严厉、且符合预测市场逻辑的语境（已弃用“震荡”等死板词汇，改为“套利空间”、“高胜算区”、“建议观望”）。</p>
+
+        <!-- ==========================================
+             设计方案 1：彭博量化极简风 (Bloomberg Terminal Pro)
+             ========================================== -->
+        <div class="mb-16">
+            <h2 class="text-xl font-semibold mb-4 text-white">方案 A: 彭博终端极简风 (Institutional Minimalist)</h2>
+            <p class="text-sm text-gray-500 mb-4">设计理念：克制、极简、无边框。去除所有多余的框线和发光元素，依靠文字纯净度和超高对比度进行视觉引导，适合长时间盯盘的高级极客交易员。</p>
+            
+            <div class="bg-[#0D1017] border-y border-[#202532] text-sm">
+                <!-- 主行 -->
+                <div class="grid grid-cols-8 py-3.5 px-6 items-center text-gray-400 hover:bg-[#161B22] transition-colors cursor-pointer border-b border-[#202532]">
+                    <div class="font-mono text-white text-xs">1H / 1小时</div>
+                    <div class="font-mono text-right text-xs">$69,562.41</div>
+                    <div class="font-mono text-right text-gray-400 text-xs">$69,562.34</div>
+                    <div class="font-mono text-right text-xs">— 0.00%</div>
+                    <div class="text-center font-mono font-bold text-gray-500 text-xs">— 建议观望</div>
+                    <div class="font-mono text-right text-white text-xs">$69,582.64</div>
+                    <div class="font-mono text-right text-gray-500 text-xs">综合 -24</div>
+                    <div class="text-right text-xs font-mono tracking-wider"><span class="bg-[#1f232e] text-gray-400 px-2 py-1 rounded">跌意衰竭</span></div>
+                </div>
+
+                <!-- 展开面板 -->
+                <div class="bg-[#0A0C10] px-6 py-6 border-b border-[#202532]">
+                    <div class="flex flex-col md:flex-row items-start gap-12">
+                        <!-- 核心结论竖线分隔 -->
+                        <div class="border-l-2 border-[#202532] pl-5 max-w-xl">
+                            <div class="flex items-center gap-3 mb-3">
+                                <span class="bg-[#161b22] border border-[#30363d] text-gray-400 text-[10px] px-2 py-0.5 font-bold uppercase tracking-widest rounded-sm">系统解析归因</span>
+                                <span class="text-gray-500 text-xs font-mono border-b border-gray-800">EXP: 45 MINS</span>
+                            </div>
+                            <h3 class="text-[13px] text-gray-300 font-bold mb-3 tracking-wide">
+                                方向不明，严防画门。综合得分为 -24，当前无套利空间。
+                            </h3>
+                            <p class="text-gray-500 text-[11px] leading-relaxed">
+                                <strong class="text-gray-400 font-mono font-normal">ENGINES / 共振诊断:</strong> 
+                                当前呈现极致的引擎撕裂：缠论形态与六因子动能发生背离。这种指标级矛盾通常意味着盘口正在经历剧烈洗盘，强行切入存在极高“画门”风险。
+                            </p>
+                        </div>
+
+                        <!-- 盘口触发器 -->
+                        <div class="flex-1">
+                            <div class="text-[10px] text-gray-600 font-bold font-mono uppercase tracking-widest mb-4">MARKET / 盘口微观异动</div>
+                            <div class="flex flex-col gap-2.5">
+                                <span class="bg-[#1a1d24] px-3 py-1.5 rounded-sm border border-[#202532] text-gray-400 text-[11px] font-mono inline-block w-max">
+                                    [SYS] 中枢附近的区间偏离
+                                </span>
+                                <span class="bg-[#0c182b] px-3 py-1.5 rounded-sm border border-[#162d4c] text-blue-400 text-[11px] font-mono inline-block w-max flex items-center gap-2">
+                                    <span class="w-1.5 h-1.5 bg-blue-500 opacity-80 rounded-full animate-pulse"></span>
+                                    [PM] 看涨概率停滞 54.5%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             设计方案 2：Web3 晶态玻璃质感 (Neo-Glassmorphism)
+             ========================================== -->
+        <div class="mb-16">
+            <h2 class="text-xl font-semibold mb-4 text-white">方案 B: Web3 晶态玻璃质感 (Neo-Glassmorphism)</h2>
+            <p class="text-sm text-gray-500 mb-4">设计理念：极富科技感和高大上。使用深层毛玻璃 (Backdrop Blur)、超细微渐变边框和内发光层，让警告面板像一块具有物理厚度的悬浮卡片。排版抛弃表格感，更像 App 控件。</p>
+            
+            <div class="bg-[#111318] rounded-2xl border border-white/[0.06] overflow-hidden text-sm shadow-[0_4px_40px_rgba(0,0,0,0.6)]">
+                <!-- 主行 -->
+                <div class="flex items-center justify-between py-4 px-6 text-gray-400 hover:bg-white/[0.02] transition-colors cursor-pointer border-b border-white/[0.04]">
+                    <div class="w-24 font-mono text-white text-[13px] font-medium tracking-wide">1 HOUR</div>
+                    <div class="flex items-center gap-6">
+                        <div class="text-right">
+                            <div class="text-[10px] text-gray-600 mb-0.5">现货基准</div>
+                            <div class="font-mono text-gray-300 text-xs">$69,562</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[10px] text-gray-600 mb-0.5">PM 胜券</div>
+                            <div class="font-mono font-medium text-emerald-500/80 text-xs">建议观望</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[10px] text-gray-600 mb-0.5">评分</div>
+                            <div class="font-mono text-yellow-600/80 text-xs">-24</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <div class="text-right text-[11px]"><span class="bg-yellow-500/10 text-yellow-500/80 border border-yellow-500/20 px-2 py-1 rounded-md font-semibold tracking-wider">结构钝化</span></div>
+                        <svg class="w-4 h-4 text-gray-600 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                </div>
+
+                <!-- 展开面板 -->
+                <div class="p-5 bg-gradient-to-br from-[#0A0C10] to-[#0d1017] relative">
+                    <!-- 玻璃卡片 -->
+                    <div class="glass-panel-heavy rounded-2xl p-6 relative overflow-hidden flex flex-col md:flex-row gap-8 z-10">
+                        <!-- 装饰光晕 -->
+                        <div class="absolute -top-32 -left-32 w-64 h-64 bg-orange-500/15 blur-[60px] rounded-full pointer-events-none"></div>
+
+                        <div class="flex-1 z-10">
+                            <div class="flex justify-between items-center mb-4">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_12px_rgba(249,115,22,1)]"></div>
+                                    <span class="text-orange-300/90 text-[13px] font-bold tracking-widest border-b border-orange-500/30 pb-0.5">方向不明，严防画门</span>
+                                </div>
+                                <span class="bg-white/5 text-gray-300 text-[10px] px-2.5 py-1 rounded-full border border-white/10 font-mono shadow-sm flex items-center gap-1.5">
+                                    <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    倒计时 45:00
+                                </span>
+                            </div>
+                            
+                            <p class="text-gray-300/80 text-[12px] leading-loose font-sans mt-3 relative pl-4 opacity-90">
+                                <span class="absolute left-0 top-1 w-[3px] h-[80%] bg-gradient-to-b from-orange-400 to-transparent rounded-full shadow-[0_0_8px_rgba(251,146,60,0.6)]"></span>
+                                当前呈现极致的引擎撕裂：缠论形态与六因子动能发生背离。这种指标级矛盾通常意味着盘口正在经历剧烈洗盘或到达伪趋势末端，强行切入存在极高“画门”风险。
+                            </p>
+                        </div>
+
+                        <div class="w-full md:w-64 z-10 pt-1">
+                            <span class="text-[10px] font-bold tracking-widest text-white/40 uppercase mb-4 flex items-center gap-2">
+                                <span class="w-3 h-0.5 bg-white/20"></span>
+                                智能预警雷达
+                            </span>
+                            <div class="flex flex-col gap-2.5">
+                                <div class="bg-black/30 border border-white/[0.05] px-3 py-2 rounded-xl text-[11px] text-gray-300 shadow-inner flex items-center gap-2.5 hover:bg-white/[0.05] transition-colors cursor-default">
+                                    <div class="p-1 rounded bg-white/5 border border-white/10"><svg class="w-3 h-3 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16z"></path></svg></div>
+                                    <span class="tracking-wide text-gray-400 font-mono">中枢区间偏离</span>
+                                </div>
+                                <div class="bg-gradient-to-r from-blue-900/20 to-transparent border border-blue-500/20 px-3 py-2 rounded-xl text-[11px] text-blue-200 shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] flex items-center gap-2.5 relative overflow-hidden">
+                                    <div class="absolute right-0 top-0 w-16 h-full bg-blue-500/10 blur-xl"></div>
+                                    <div class="p-1.5 rounded-full bg-blue-500/20 border border-blue-400/30">
+                                        <div class="w-1.5 h-1.5 bg-blue-400 rounded-full animate-ping"></div>
+                                    </div>
+                                    <span class="tracking-wide font-mono relative z-10 flex flex-col pt-0.5">PM 收敛 54.5%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             设计方案 3：金融极客数据流 (Data-Dense Console)
+             ========================================== -->
+        <div class="mb-20">
+            <h2 class="text-xl font-semibold mb-4 text-white">方案 C: 硬核模块拼图 (Tile UI)</h2>
+            <p class="text-sm text-gray-500 mb-4">设计理念：类似交易所的专业交易面板。将数据切碎为独立的板块，每一个结论都被严密地封在框内，横平竖直，信息获取效率最高。</p>
+            
+            <div class="border border-[#1A1D24] bg-[#0A0C10] font-mono text-[13px] rounded-lg overflow-hidden">
+                <!-- 主行 -->
+                <div class="flex items-center p-0 text-gray-400 border-b border-[#1A1D24]">
+                    <div class="w-20 p-3 bg-[#111318] border-r border-[#1A1D24] text-center font-bold text-gray-300">1H</div>
+                    <div class="flex-1 px-4 flex justify-between items-center">
+                        <div class="text-xs">价格 <span class="text-white ml-2">$69,562</span></div>
+                        <div class="text-xs text-gray-500">综合判定 <span class="bg-[#1A1D24] px-2 py-0.5 rounded ml-2">建议观望</span></div>
+                        <div class="text-xs text-yellow-600 font-bold bg-yellow-500/5 px-2 py-0.5 border border-yellow-500/10 rounded">综合评分 -24</div>
+                    </div>
+                    <div class="p-3 border-l border-[#1A1D24] hover:bg-[#1A1D24] cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                </div>
+
+                <!-- 展开面板 -->
+                <div class="p-4 grid grid-cols-12 gap-4 bg-[#0B0D12]">
+                    <div class="col-span-12 md:col-span-8 bg-[#111318] border border-[#1A1D24] p-4 rounded-lg flex flex-col justify-between">
+                        <div>
+                            <span class="inline-block bg-orange-500/10 text-orange-500 border border-orange-500/20 text-[10px] px-2 py-0.5 rounded-sm mb-3 uppercase font-bold tracking-widest">系统最高级预警</span>
+                            <div class="text-gray-300 font-bold mb-1 text-[13px]">方向不明，严防画门。</div>
+                            <div class="text-gray-500 text-[11px] leading-relaxed mt-2 border-t border-white/5 pt-2">
+                                缠论形态与六因子动能发生背离。这种指标级矛盾通常意味着盘口正在经历剧烈洗盘，强行切入存在极高“画门”风险。
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-span-12 md:col-span-4 flex flex-col gap-4">
+                        <div class="bg-[#111318] border border-[#1A1D24] p-3 rounded-lg flex items-center justify-between">
+                            <span class="text-gray-500 text-[10px]">剩余周期</span>
+                            <span class="text-gray-300 font-bold">45 MINS</span>
+                        </div>
+                        <div class="bg-[#111318] border border-[#1A1D24] p-3 rounded-lg flex-1">
+                            <span class="block text-gray-500 text-[10px] mb-2 border-b border-[#1A1D24] pb-1">异动信号池</span>
+                            <div class="flex flex-wrap gap-2">
+                                <span class="bg-gray-800 text-gray-400 px-2 py-0.5 text-[10px] rounded border border-gray-700">中枢偏离</span>
+                                <span class="bg-blue-900/20 text-blue-400 px-2 py-0.5 text-[10px] rounded border border-blue-800/50">PM 54.5%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

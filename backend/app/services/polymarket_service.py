@@ -229,70 +229,73 @@ class PolymarketService:
             else:
                 action = "观望"
 
-            # P8: sideways 方向强制 "中性"，避免低分被误标为 "极佳"
-            if composite_direction == "sideways":
-                score_level = "中性"
-            elif abs_score >= 80:
-                score_level = "极佳"
-            elif abs_score >= 60:
-                score_level = "良好"
-            else:
-                score_level = "中性"
-            score_desc = "趋势强烈可建仓" if score_level == "极佳" else "部分资金可试探" if score_level == "良好" else "方向不明建议观望"
-
-            if chanlun_dir == factor_dir and chanlun_dir != "sideways":
-                dir_status = "同向增强"
-            elif factor_dir == "neutral":
-                dir_status = "因子中性"
-            elif chanlun_dir == "sideways":
-                dir_status = "缠论中性"
-            elif chanlun_dir != factor_dir:
-                dir_status = "方向矛盾"
-            else:
-                dir_status = "因子中性"
-
-            # ---- P9 Dual Reference Enhancements ----
+            # ---- P11 Dual Reference & Semantic Collapse ----
             spot_momentum_desc = ""
             if composite_direction == "up":
-                if chanlun_dir == "down" or factor_dir == "down":
-                    spot_momentum_desc = "上升分歧"
-                else:
-                    spot_momentum_desc = "强势看涨"
+                spot_momentum_desc = "看涨分歧" if (chanlun_dir == "down" or factor_dir == "down") else "单边看涨"
             elif composite_direction == "down":
-                if chanlun_dir == "up" or factor_dir == "up":
-                    spot_momentum_desc = "多头抵抗"
-                else:
-                    spot_momentum_desc = "回调压力"
+                spot_momentum_desc = "看跌分歧" if (chanlun_dir == "up" or factor_dir == "up") else "单边看跌"
             else:
-                spot_momentum_desc = "高位震荡"
-                
-            pm_action_advice = "— 观望"
-            if predicted_delta_pct > 1.5:
-                pm_action_advice = "↑ 高胜算局"
-            elif predicted_delta_pct > 0.5:
-                pm_action_advice = "↑ 盘口优势"
-            elif predicted_delta_pct < -1.5:
-                pm_action_advice = "↓ 高风险局"
-            elif predicted_delta_pct < -0.5:
-                pm_action_advice = "↓ 盘口劣势"
-            else:
-                pm_action_advice = "— 盘口震荡"
+                spot_momentum_desc = "无趋势"
 
-            factors = []
-            factors.append(f"综合评分 {composite_win_rate}/100 — {score_level}")
-            factors.append(f"缠论引擎 {chanlun_win_rate}分 ({chanlun_dir}) | 六因子 {factor_win_rate}分 ({factor_dir})")
-            factors.append(dir_status)
-            if pred.get("triggers"):
-                factors.extend(pred["triggers"][:2])
-            
-            # STRICT ORACLE MANDATE: Never synthesize PM probabilities
-            if market_up_prob is not None:
-                factors.append(f"PM看涨{market_up_prob}%")
+            if composite_direction == "sideways":
+                score_level = "无概率优势"
+                score_desc = "方向不明，买入期望(EV)为负"
+            elif abs_score >= 80:
+                score_level = "极佳 Edge"
+                score_desc = f"{spot_momentum_desc}，建议买入明确份额"
+            elif abs_score >= 60:
+                score_level = "正 EV 区间"
+                score_desc = f"{spot_momentum_desc}，存在概率偏差"
+            else:
+                score_level = spot_momentum_desc
+                score_desc = "指标衰竭，EV 边际收窄"
+
+            if predicted_delta_pct > 1.5:
+                pm_action_advice = "↑ 强烈看涨"
+            elif predicted_delta_pct > 0.5:
+                pm_action_advice = "↑ 偏向看涨"
+            elif predicted_delta_pct < -1.5:
+                pm_action_advice = "↓ 强烈看跌"
+            elif predicted_delta_pct < -0.5:
+                pm_action_advice = "↓ 偏向看跌"
+            else:
+                pm_action_advice = "— 无利可图"
+
+            if abs_score >= 60 and composite_direction == "up":
+                action = "买入 YES"
+            elif abs_score >= 60 and composite_direction == "down":
+                action = "买入 NO"
+            else:
+                action = "观望"
+
+            if chanlun_dir == factor_dir and chanlun_dir != "sideways":
+                dir_status = "同向共振"
+            elif chanlun_dir != factor_dir and factor_dir != "neutral" and chanlun_dir != "sideways":
+                dir_status = "指标撕裂"
+            else:
+                dir_status = "无共振"
 
             if action in ["看涨买入", "看跌买入"]:
-                reason = f"{score_level} — {dir_status}，综合{composite_win_rate}分，目标价 ${predicted_price:,.2f}"
+                reason = f"⚡ {score_level} — {score_desc} | 综合 {composite_win_rate}分 | 目标价 ${predicted_price:,.2f}"
             else:
-                reason = f"{score_level} — {score_desc}，{dir_status}"
+                reason = f"⚡ {score_level} — {score_desc} | 综合 {composite_win_rate}分"
+
+            # Generate natural language AI engine analysis
+            dir_zh = "看涨" if composite_direction == "up" else "看跌" if composite_direction == "down" else "横盘"
+            engine_analysis = ""
+            if dir_status == "同向共振":
+                engine_analysis = f"底层资产（BTC）古典结构与动能因子达到最高维度的 [{dir_zh}] 共振。胜率底池充裕，当前 PM 盘口（YES/NO）存在极高确定性的正期望（+EV）博弈空间。"
+            elif dir_status == "指标撕裂":
+                engine_analysis = f"底层资产呈现极致的引擎撕裂：缠论形态与微观因子发生背离。PM 预测市场属二元期权，切忌在此刻进行无概率优势的 50/50 盲目掷骰子，建议空仓观望。"
+            else:
+                engine_analysis = f"双引擎处于未共振的低信度水域。底层资产暂无突破确认，对应 PM 盘口的 YES/NO 份额均无显著的概率偏差（Edge），当前买入份额的长期数学期望为负（-EV）。"
+
+            factors = []
+            if pred.get("triggers"):
+                factors.extend(pred["triggers"][:3])
+            
+            # PM probabilities are deprecated from the radar signals per user request
 
             guide_win_rate = composite_win_rate
             # PM 概率不再融合到 guide_win_rate，仅保留缠论评分
@@ -321,6 +324,7 @@ class PolymarketService:
                 "pmActionAdvice": pm_action_advice,
                 "spotMomentumDesc": spot_momentum_desc,
                 "reason": reason,
+                "engineAnalysis": engine_analysis,
                 "factors": factors,
                 "volume": tf_data.get("volume", 0),
                 "marketCount": tf_data.get("marketCount", 0),

@@ -8,9 +8,9 @@ interface PredictionTableProps {
 }
 
 const directionConfig = {
-  up: { icon: ArrowUp, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "做多" },
-  down: { icon: ArrowDown, color: "text-red-500", bg: "bg-red-500/10", label: "做空" },
-  sideways: { icon: Minus, color: "text-[var(--fg-muted)]", bg: "bg-[var(--bg-subtle)]", label: "观望" },
+  up: { icon: ArrowUp, color: "text-emerald-400", bg: "bg-emerald-400/10", label: "看涨" },
+  down: { icon: ArrowDown, color: "text-rose-400", bg: "bg-rose-400/10", label: "看跌" },
+  sideways: { icon: Minus, color: "text-gray-400", bg: "bg-gray-400/10", label: "观望" },
 } as const;
 
 function formatPrice(n: number) {
@@ -19,15 +19,15 @@ function formatPrice(n: number) {
 }
 
 function scoreColor(v: number) {
-  if (v > 35) return "text-emerald-500";
-  if (v < -35) return "text-red-500";
-  return "text-amber-500";
+  if (v > 0) return "text-emerald-400";
+  if (v < 0) return "text-rose-400";
+  return "text-gray-400";
 }
 
 function scoreBg(v: number) {
-  if (v > 35) return "#10B981";
-  if (v < -35) return "#EF4444";
-  return "#F59E0B";
+  if (v > 0) return "#34D399";
+  if (v < 0) return "#FB7185";
+  return "#9CA3AF";
 }
 
 function findMatchingGuide(tf: string, guides: BettingGuide[]): BettingGuide | null {
@@ -40,8 +40,8 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
 
   // Use fr units for dynamic distribution across the full width
   const cols = hasGuides
-    ? "60px 80px 1.2fr 1.2fr 1fr 80px 140px 1fr 1fr"
-    : "60px 80px 1.2fr 1fr 80px 140px 1fr 1fr";
+    ? "60px 80px 1.2fr 1.2fr 1fr 60px 60px 120px 1fr 1fr"
+    : "60px 80px 1.2fr 1fr 60px 60px 120px 1fr 1fr";
 
   return (
     <div className="chart-section">
@@ -63,19 +63,20 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
           className="grid items-end pb-2 border-b border-[var(--border-strong)] gap-x-3"
           style={{ gridTemplateColumns: cols }}
         >
-          <span className="text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)]">周期</span>
-          <span className="text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)]">信号</span>
+          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)]">周期</span>
+          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)]">信号</span>
           {hasGuides && (
-            <span className="text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right inline-flex items-center justify-end gap-1">
+            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right inline-flex items-center justify-end gap-1">
               <Target className="h-3 w-3" />现货基准价
             </span>
           )}
-          <span className="text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">目标价</span>
-          <span className="text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">现货涨跌幅</span>
-          <span className="text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-center">缠论</span>
-          <span className="text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-center">综合评分</span>
-          <span className="text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">支撑位</span>
-          <span className="text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">阻力位</span>
+          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">目标价</span>
+          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">现货涨跌幅</span>
+          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-center">缠论</span>
+          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-center">六因子</span>
+          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-center">综合评分</span>
+          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">支撑位</span>
+          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">阻力位</span>
         </div>
 
         {/* Rows */}
@@ -85,6 +86,7 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
           const guide = hasGuides ? findMatchingGuide(pred.timeframe, bettingGuides!) : null;
           const composite = pred.compositeWinRate ?? pred.winRate;
           const chanlun = pred.chanlunWinRate ?? 0;
+          const factor = pred.factorWinRate ?? 0;
 
           return (
             <div
@@ -94,7 +96,7 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
             >
               {/* 周期 */}
               <div className="flex items-center gap-1">
-                <span className="font-mono text-xs font-bold text-[var(--fg-base)]">
+                <span className="font-mono text-[13px] font-bold text-[var(--fg-base)]">
                   {pred.timeframe.toUpperCase()}
                 </span>
                 {pred.isDeadZone && (
@@ -108,7 +110,7 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
               </div>
 
               {/* 信号 */}
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold ${cfg.bg} ${cfg.color} w-fit`}>
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[12px] font-bold ${cfg.bg} ${cfg.color} w-fit`}>
                 <Icon className="h-3 w-3" />
                 {cfg.label}
               </span>
@@ -116,27 +118,32 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
               {/* 基准价 — 显示引擎参考现货价，与目标价/涨跌幅/信号保持一致 */}
               {hasGuides && (
                 <div className="text-right">
-                  <span className="font-mono text-[11px] text-[var(--fg-muted)] font-semibold">
+                  <span className="font-mono text-[13px] text-[var(--fg-muted)] font-semibold">
                     ${formatPrice(pred.currentPrice)}
                   </span>
                 </div>
               )}
 
               {/* 目标价 */}
-              <span className="font-mono text-xs font-semibold text-[var(--fg-base)] text-right">
+              <span className="font-mono text-[13px] font-semibold text-[var(--fg-base)] text-right">
                 ${formatPrice(pred.targetPrice)}
               </span>
 
               {/* 涨跌幅 — 与引擎信号方向一致 */}
-              <span className={`font-mono text-xs font-semibold text-right ${
-                pred.priceChangePct > 0 ? "text-emerald-500" : pred.priceChangePct < 0 ? "text-red-500" : "text-[var(--fg-muted)]"
+              <span className={`font-mono text-[13px] font-semibold text-right ${
+                pred.priceChangePct > 0 ? "text-emerald-400" : pred.priceChangePct < 0 ? "text-rose-400" : "text-[var(--fg-muted)]"
               }`}>
                 {pred.priceChangePct > 0 ? "+" : ""}{pred.priceChangePct}%
               </span>
 
               {/* 缠论 */}
-              <span className={`font-mono text-xs font-bold text-center ${scoreColor(chanlun)}`}>
+              <span className={`font-mono text-[13px] font-bold text-center ${scoreColor(chanlun)}`}>
                 {chanlun > 0 ? "+" : ""}{chanlun}
+              </span>
+
+              {/* 六因子 */}
+              <span className={`font-mono text-[13px] font-bold text-center ${scoreColor(factor)}`}>
+                {factor > 0 ? "+" : ""}{factor}
               </span>
 
               {/* 综合评分 */}
@@ -150,18 +157,18 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
                     }}
                   />
                 </div>
-                <span className={`font-mono text-[11px] font-bold ${scoreColor(composite)}`}>
+                <span className={`font-mono text-[13px] font-bold ${scoreColor(composite)}`}>
                   {composite > 0 ? "+" : ""}{composite}
                 </span>
               </div>
 
               {/* 支撑位 */}
-              <span className="font-mono text-[11px] text-emerald-500 text-right">
+              <span className="font-mono text-[12px] text-emerald-400 text-right">
                 ${formatPrice(pred.support)}
               </span>
 
               {/* 阻力位 */}
-              <span className="font-mono text-[11px] text-red-400 text-right">
+              <span className="font-mono text-[12px] text-rose-400 text-right">
                 ${formatPrice(pred.resistance)}
               </span>
             </div>

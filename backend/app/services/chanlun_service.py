@@ -390,14 +390,22 @@ class ChanlunService:
         indicators = self._compute_indicators(closes, highs, lows, volumes)
         chanlun_res = analyze_with_fallback(klines, current_price, closes, timeframe=tf)
         
-        factor_scores = compute_all_factors(closes, volumes, highs, lows, divergence=chanlun_res.get("divergence"))
+        factor_scores = compute_all_factors(closes, volumes, highs, lows, divergence=chanlun_res.get("divergence"), tf=tf)
         factor_composite, _ = compute_composite_score(factor_scores)
         
         chanlun_raw = chanlun_res.get("dir_score", 0) * 100
         factor_raw = factor_composite * 100
         
-        # P4核心公式：两大连续引擎对冲合流
-        composite_raw = chanlun_raw * 0.6 + factor_raw * 0.4
+        # P4/P10核心公式：多引擎动态对冲合流 (Dyn-Blending)
+        if tf == "1d":
+            # 1D: 因子拥有 80% 胜率极高置信度，大幅提权
+            composite_raw = chanlun_raw * 0.4 + factor_raw * 0.6
+        elif tf in ["1h", "4h"]:
+            # 1H/4H: 波段假突破重灾区，因子胜率<50%，强行压制因子，完全听从缠论
+            composite_raw = chanlun_raw * 0.85 + factor_raw * 0.15
+        else:
+            # 15m / 5m: 短线高频，五五开对拼
+            composite_raw = chanlun_raw * 0.5 + factor_raw * 0.5
         
         trend_analysis = {
             "trend": chanlun_res.get("direction", "neutral"),

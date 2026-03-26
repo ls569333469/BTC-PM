@@ -19,8 +19,8 @@ export function TriggerPanel({ predictions }: TriggerPanelProps) {
   const triggers = Array.from(triggerMap.entries()).map(([text, timeframes]) => ({
     text,
     timeframes,
-    isBullish: text.toLowerCase().includes("bullish") || text.toLowerCase().includes("squeeze risk") || text.toLowerCase().includes("ascending"),
-    isBearish: text.toLowerCase().includes("bearish") || text.toLowerCase().includes("overbought") || text.toLowerCase().includes("long squeeze") || text.toLowerCase().includes("descending"),
+    isBullish: text.includes("看涨") || text.includes("空头挤压") || text.includes("测试支撑") || text.includes("底背离") || text.includes("上升通道"),
+    isBearish: text.includes("看跌") || text.includes("超买") || text.includes("顶背离") || text.includes("假突破") || text.includes("多头挤压") || text.includes("下降通道"),
   }));
 
   return (

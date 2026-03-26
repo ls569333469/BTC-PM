@@ -36,6 +36,7 @@ def compute_all_factors(
     highs: Optional[np.ndarray] = None,
     lows: Optional[np.ndarray] = None,
     divergence: Optional[dict] = None,
+    tf: str = "5m",
     **kwargs,
 ) -> list[dict]:
     """
@@ -48,18 +49,18 @@ def compute_all_factors(
     factors.append(score_macd_divergence(divergence))
 
     # 2. Volume
-    factors.append(score_volume(volumes))
+    factors.append(score_volume(volumes, closes))
 
     # 3. Bollinger Bands
     factors.append(score_bbands(closes))
 
-    # 4. KDJ (替换RSI)
+    # 4. KDJ
     factors.append(score_kdj(highs, lows, closes))
 
-    # 5. SAR (替换恐惧贪婪)
+    # 5. SAR
     factors.append(score_sar(highs, lows, closes))
 
-    # 6. MFI (替换资金费率)
+    # 6. MFI
     factors.append(score_mfi(highs, lows, closes, volumes))
 
     return [asdict(f) for f in factors]
@@ -79,7 +80,12 @@ def compute_composite_score(factors: list[dict]) -> tuple[float, str]:
     if total_weight == 0:
         return 0.0, "neutral"
     weighted_sum = sum(f["score"] * f["weight"] for f in factors)
-    score = max(-1.0, min(1.0, weighted_sum / (total_weight * 3)))
+    
+    # 核心映射升级 (P10)：
+    # 本质分数仍然是 weighted_sum / (total_weight * 3) 的原始 [-1, +1] 范数。
+    # 乘以 1.5 倍放大器，是为了将统计学上极难达到的极值放大，使得由于因子迟滞抵消而造成的 $\pm40$ 真实爆发点，
+    # 能够有机地放大至 $\pm60$ 以完全匹配缠论 UI 的视觉强度体验框架。
+    score = max(-1.0, min(1.0, (weighted_sum / (total_weight * 3)) * 1.5))
 
     # Direction from composite score
     if score > 0.1:
@@ -107,7 +113,7 @@ def score_macd_divergence(divergence: Optional[dict]) -> FactorScore:
 
 # ── Factor 2: Volume ──
 
-def score_volume(volumes: np.ndarray) -> FactorScore:
+def score_volume(volumes: np.ndarray, closes: np.ndarray = None) -> FactorScore:
     if volumes is None or len(volumes) < 20:
         return FactorScore("volume", 0.0, 0.5, "neutral", "成交量数据不足")
 
@@ -117,11 +123,17 @@ def score_volume(volumes: np.ndarray) -> FactorScore:
     if historical_avg == 0:
         return FactorScore("volume", 0.0, 0.5, "neutral", "无成交量数据")
 
+    # 获取价格趋势方向以赋予成交量正负极性 (放量下跌 = 恐慌 = 负分, 放量上涨 = 抢筹 = 正分)
+    price_trend = 1
+    if closes is not None and len(closes) >= 5:
+        price_trend = 1 if closes[-1] >= closes[-5] else -1
+    
     # 连续化体积函数 (以2为底的对数变化率)
     import math
     ratio = max(0.01, recent_avg / historical_avg)  # 防无限小
-    raw_score = math.log2(ratio) * 1.5
+    raw_score = math.log2(ratio) * 1.5 * price_trend
     score = max(-3.0, min(3.0, raw_score))
+
     
     direction = "up" if score > 0.5 else ("down" if score < -0.5 else "neutral")
     return FactorScore("volume", round(score, 2), 0.5, direction, f"量能比 {ratio:.2f}x (对数分 {score:.2f})")
@@ -142,11 +154,11 @@ def score_bbands(closes: np.ndarray) -> FactorScore:
     bandwidth = (upper[-1] - lower[-1]) / middle[-1] if middle[-1] > 0 else 0
     position = (price - lower[-1]) / (upper[-1] - lower[-1]) if (upper[-1] - lower[-1]) > 0 else 0.5
 
-    # 连续化布林带函数 (0.5 为中轴，0 为下轨超卖(买入)，1 为上轨超买(卖出))
-    # 偏离度 = 0.5 - position
-    # 当打到下轨(0)时偏离度 0.5 -> score = 3.0
-    # 当打到上轨(1)时偏离度 -0.5 -> score = -3.0
-    raw_score = (0.5 - position) / 0.5 * 3.0
+    # 连续化布林带函数 (0.5 为中轴，0 为下轨弱势(看跌)，1 为上轨强势(看涨))
+    # 偏离度 = position - 0.5
+    # 当打到下轨(0)时偏离度 -0.5 -> score = -3.0
+    # 当打到上轨(1)时偏离度 +0.5 -> score = +3.0
+    raw_score = (position - 0.5) / 0.5 * 3.0
     
     # 根据波动率(开口大小)进行动能放大
     if bandwidth > 0.08:
@@ -164,7 +176,7 @@ def score_bbands(closes: np.ndarray) -> FactorScore:
     return FactorScore("bbands", round(score, 2), 0.6, direction, details)
 
 
-# ── Factor 4: KDJ (替换RSI) ──
+# ── Factor 4: KDJ ──
 
 def score_kdj(highs: np.ndarray, lows: np.ndarray, closes: np.ndarray) -> FactorScore:
     """KDJ (9,3,3) — J线灵敏度是RSI的4倍，短线之王。"""
@@ -188,10 +200,10 @@ def score_kdj(highs: np.ndarray, lows: np.ndarray, closes: np.ndarray) -> Factor
     golden_cross = j_prev < k_prev and j_val > k_val  # J上穿K
     death_cross = j_prev > k_prev and j_val < k_val   # J下穿K
 
-    # 连续化 KDJ 函数 (J 均值 50)
-    # J = 0 -> score 3.0 (极度超卖看涨)
-    # J = 100 -> score -3.0 (极度超买看跌)
-    raw_score = (50.0 - j_val) / 50.0 * 2.5
+    # 连续化 KDJ 动能函数 (J 均值 50)
+    # J = 0 -> score -3.0 (极度弱势看跌)
+    # J = 100 -> score 3.0 (极度强势看涨)
+    raw_score = (j_val - 50.0) / 50.0 * 2.5
     
     # 金叉死叉动能附加
     if golden_cross:
@@ -261,8 +273,8 @@ def score_mfi(highs: np.ndarray, lows: np.ndarray, closes: np.ndarray, volumes: 
     mfi_prev = float(mfi[-3]) if len(mfi) > 2 and not np.isnan(mfi[-3]) else mfi_val
     trend = "上升" if mfi_val > mfi_prev + 5 else ("下降" if mfi_val < mfi_prev - 5 else "平稳")
 
-    # 连续化 MFI 函数 (50 为中轴)
-    raw_score = (50.0 - mfi_val) / 50.0 * 3.0
+    # 连续化 MFI 动能函数 (50 为中轴)
+    raw_score = (mfi_val - 50.0) / 50.0 * 3.0
     
     score = max(-3.0, min(3.0, raw_score))
     direction = "up" if score > 1.0 else ("down" if score < -1.0 else "neutral")

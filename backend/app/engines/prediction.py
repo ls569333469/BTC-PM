@@ -29,6 +29,7 @@ def generate_prediction_for_tf(
     indicators: dict,
     funding_rate: Optional[float] = None,
     closes: Optional[np.ndarray] = None,
+    **kwargs
 ) -> dict:
     nearest_zs = trend_analysis.get("nearest_zs")
 
@@ -48,8 +49,6 @@ def generate_prediction_for_tf(
     resistance = current_price + base_move
 
     # 2. Strict Chanlun Hub Overrides (True Physics)
-    # ⚠️ FIX: Prevent ancient distant ZhongShus from causing absolute target-lock
-    # Only allow ZhongShu gravity to pull if it is within 3x the local ATR
     max_pull_distance = base_move * 3
 
     if nearest_zs:
@@ -99,6 +98,9 @@ def generate_prediction_for_tf(
         "priceChange": round(target_price - current_price, 2),
         "priceChangePct": round(((target_price - current_price) / current_price) * 100, 2),
         "winRate": win_rate,
+        "compositeWinRate": win_rate,
+        "chanlunWinRate": round(kwargs.get("chanlun_raw", 0), 1) if "chanlun_raw" in kwargs else win_rate,
+        "factorWinRate": round(kwargs.get("factor_raw", 0), 1) if "factor_raw" in kwargs else 0,
         "support": round(support, 2),
         "resistance": round(resistance, 2),
         "triggers": triggers,

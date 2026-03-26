@@ -220,6 +220,7 @@ export interface BettingGuide {
   marketUpProb?: number;
   marketDownProb?: number;
   reason: string;
+  engineAnalysis?: string;
   factors: string[];
   endTimeLocal?: string;
   upDownLink?: string;

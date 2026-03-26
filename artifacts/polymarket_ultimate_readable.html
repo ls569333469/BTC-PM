@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>方案 A+B 最终进化 - 极高辨识度篇 (Ultimate Readability)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        /* 纯粹暗网黑 */
+                        pitch: '#000000',
+                        carbon: '#0a0a0c',
+                        obsidian: '#050505',
+                        /* 护眼微光点缀 */
+                        neon_cyan: '#06b6d4',
+                        neon_emerald: '#10b981',
+                        neon_rose: '#f43f5e',
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'Fira Code', 'sans-serif'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #020202; color: #a1a1aa; font-family: 'Inter', sans-serif; }
+        
+        .grid-row-layout {
+            display: grid;
+            grid-template-columns: 80px 100px 100px 90px 110px     20px     100px 80px 60px 60px 80px 20px;
+            align-items: center;
+        }
+
+        /* 极简边框，避免过于粗黑导致看不清 */
+        .glass-border {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 space-y-24 max-w-[1400px] mx-auto text-[13px]">
+
+    <div>
+        <h1 class="text-3xl font-bold mb-3 text-white">方案 A+B 终极进化：单色引擎 + 微光雕刻 (Ultimate Legibility)</h1>
+        <p class="text-gray-400 mb-8 max-w-4xl text-sm leading-relaxed">
+            您说得太对了。纯单色（Ghost Monochrome）确实太装逼了，导致一眼抓不住重点数据。高频交易时，“能瞬间看清买卖信号”才是王道。<br/><br/>
+            因此，我为您生成了以下 3 款**“极其清晰又丝毫不刺眼”**的终极优化方案。它们保留了纯黑（#000000）的深渊高级感背景，但对核心数据（例如 `实时现货价格`、`PM建议`）进行了**彩色高亮提纯**（使用了极低饱和度的护眼莫兰迪彩色，绝不晃眼）。
+        </p>
+    </div>
+
+    <!-- ==========================================
+         Optimization 1：Monochrome + Neon Micro-Accents (单色框架 + 微光雕刻)
+         ========================================== -->
+    <div>
+        <div class="mb-5">
+            <h2 class="text-xl font-bold text-gray-200 flex items-center gap-2">
+                Optimization 1: Monochrome & Micro-Accents (单色框架 + 微光信号)
+            </h2>
+            <p class="text-[13px] text-gray-500 mt-1.5">纯黑（#000000）底色。表头极暗。但价格显示为纯白，买卖信号采用细微的翡翠绿/玫瑰红文字（没有带颜色的背景方块，只有干净的文字）。</p>
+        </div>
+        
+        <div class="bg-pitch rounded-lg glass-border overflow-hidden shadow-2xl">
+            <!-- 头部 -->
+            <div class="grid-row-layout py-3.5 px-6 text-[10px] font-bold text-gray-600 bg-[#080808] border-b border-gray-900 uppercase">
+                <div>时间周期</div>
+                <div class="text-right">盘口基准</div>
+                <div class="text-right">目标价</div>
+                <div class="text-right">PM盈亏比</div>
+                <div class="text-center">PM 建议</div>
+                <div class="text-center text-gray-800">|</div>
+                <div class="text-right text-gray-400">实时价格</div>
+                <div class="text-center">综合评分</div>
+                <div class="text-center">缠论</div>
+                <div class="text-center">因子</div>
+                <div class="text-center">状态</div>
+                <div></div>
+            </div>
+
+            <!-- 数据行: 15M (强买入 YES 的展示) -->
+            <div class="grid-row-layout py-4 px-6 items-center border-b border-gray-900 hover:bg-[#050505] transition-colors relative z-10">
+                <div class="font-mono text-gray-300 font-semibold text-[14px]">15分 <span class="text-gray-600 text-[10px] ml-1">TICK</span></div>
+                <div class="text-right font-mono text-gray-500">$69,546.95</div>
+                <div class="text-right font-mono text-gray-500">$69,600.22</div>
+                <div class="text-right font-mono text-emerald-400">+1.80%</div>
+                <!-- 注意这里：没有带颜色的背景框，直接用翠绿文字，极度干净且醒目 -->
+                <div class="text-center font-bold text-emerald-400 text-[12px] whitespace-nowrap">↑ 极佳期望 (买YES)</div>
+                
+                <div class="text-center text-gray-900">|</div>
+                
+                <div class="text-right font-mono text-white text-[15px] font-bold">$69,582.64</div>
+                <div class="text-center font-mono font-bold text-emerald-400">88</div>
+                <div class="text-center font-mono text-gray-400">80</div>
+                <div class="text-center font-mono text-gray-400">92</div>
+                <div class="text-center text-gray-500 text-[11px] whitespace-nowrap">强势看涨</div>
+                <div class="flex justify-end pr-1 text-gray-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+
+            <!-- 数据行: 1H 展开 -->
+            <div class="grid-row-layout py-4 px-6 items-center glass-border bg-[#0a0a0a] relative z-20 shadow-[0_4px_30px_rgba(0,0,0,0.8)]">
+                <div class="absolute left-0 top-0 bottom-0 w-[3px] bg-gray-700 pointer-events-none"></div>
+                <div class="font-mono text-white font-semibold text-[14px]">1 小时</div>
+                <div class="text-right font-mono text-gray-300">$69,562.41</div>
+                <div class="text-right font-mono text-gray-300">$69,562.34</div>
+                <div class="text-right font-mono text-gray-500">0.00%</div>
+                <div class="text-center font-bold text-gray-300 text-[12px] whitespace-nowrap">— 无 EV 优势</div>
+                
+                <div class="text-center text-gray-900">|</div>
+                
+                <div class="text-right font-mono text-white text-[15px] font-bold">$69,582.64</div>
+                <div class="text-center font-mono font-bold text-gray-400">-24</div>
+                <div class="text-center font-mono text-gray-500">-34</div>
+                <div class="text-center font-mono text-gray-500">38</div>
+                <div class="text-center text-gray-400 text-[11px] whitespace-nowrap">横盘震荡</div>
+                <div class="flex justify-end pr-1 text-gray-500">
+                    <svg class="w-4 h-4 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+
+            <!-- Expanded Pane: 清晰的黑色底栏 -->
+            <div class="p-6 bg-pitch">
+                <div class="rounded-lg border border-gray-800 bg-[#080808] p-6 lg:p-8 flex flex-col md:flex-row gap-8 relative shadow-inner">
+                    <div class="flex-1 border-r border-gray-900 md:pr-10">
+                        <div class="flex justify-between items-center mb-4">
+                            <!-- 核心判定非常显眼，用白色加粗文字 -->
+                            <h3 class="text-gray-100 font-bold text-[15px] flex items-center gap-3 tracking-wide">
+                                <span class="text-gray-500 font-normal">判定核心：</span>无概率优势 — 方向不明，买入期望(EV)为负
+                            </h3>
+                            <span class="text-gray-500 font-mono text-[11px] bg-gray-900 px-2.5 py-1 rounded">剩 45 分钟</span>
+                        </div>
+                        <p class="text-gray-400 text-[13px] leading-[1.9] mt-2">
+                            底层资产呈现极致的引擎撕裂：缠论形态与微观因子发生背离。PM 预测市场属二元期权，切忌在此刻进行无概率优势的 50/50 盲目双边押注，建议空仓观望。
+                        </p>
+                    </div>
+
+                    <div class="w-full md:w-80">
+                        <div class="text-[10px] text-gray-600 font-bold uppercase tracking-widest mb-4">/ 微观结构 (Anomalies)</div>
+                        <div class="space-y-2.5">
+                            <div class="border border-gray-800 bg-[#050505] px-4 py-2.5 rounded text-gray-300 text-[12px] flex items-center gap-3 font-mono shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span> 
+                                中枢内部显性拉扯分离
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==========================================
+         Optimization 2：Carbon & Ice Blue (碳纤维暗色 + 冰河蓝高亮)
+         ========================================== -->
+    <div>
+        <div class="mb-5">
+            <h2 class="text-xl font-bold text-blue-200 flex items-center gap-2">
+                Optimization 2: Carbon Fiber & Ice Blue (碳深灰 + 冰河蓝)
+            </h2>
+            <p class="text-[13px] text-gray-500 mt-1.5">如果你觉得纯黑太沉浸了，这款采用了接近纯黑的极深灰色（#0A0A0C）。核心数据使用极为醒目的冰河蓝（#38bdf8），辨识度极高，同时完全没有黄色和艳红那般刺眼。</p>
+        </div>
+        
+        <div class="bg-carbon rounded-xl border border-[#1b1b22] overflow-hidden shadow-2xl relative">
+            <!-- 头部 -->
+            <div class="grid-row-layout py-3.5 px-6 text-[10px] font-bold text-gray-500 bg-[#0d0d12] border-b border-[#1b1b22] uppercase tracking-wide">
+                <div>Time</div>
+                <div class="text-right">Baseline</div>
+                <div class="text-right">Target</div>
+                <div class="text-right">PM EV%</div>
+                <div class="text-center text-blue-300/60 drop-shadow-[0_0_8px_rgba(56,189,248,0.3)]">Action</div>
+                <div class="text-center text-[#1b1b22]">|</div>
+                <div class="text-right text-blue-300/60 drop-shadow-[0_0_8px_rgba(56,189,248,0.3)]">Spot Px</div>
+                <div class="text-center">Score</div>
+                <div class="text-center">Chanlun</div>
+                <div class="text-center">Factor</div>
+                <div class="text-center">State</div>
+                <div></div>
+            </div>
+
+            <!-- 数据行: 15M (强买入 YES) -->
+            <div class="grid-row-layout py-4 px-6 items-center border-b border-[#1b1b22] hover:bg-[#0d0d12] transition-colors relative z-10">
+                <div class="font-mono text-gray-300 font-semibold text-[14px]">15 分钟</div>
+                <div class="text-right font-mono text-gray-500">$69,546.95</div>
+                <div class="text-right font-mono text-gray-500">$69,600.22</div>
+                <div class="text-right font-mono text-teal-400/90">+1.80%</div>
+                <!-- 注意这里：使用冰河蓝底纹强调 买 YES 操作 -->
+                <div class="text-center font-bold text-teal-300 text-[12px] whitespace-nowrap"><span class="bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded shadow-sm">↑ 极佳期望 (买YES)</span></div>
+                
+                <div class="text-center text-gray-900">|</div>
+                
+                <div class="text-right font-mono text-blue-400 text-[15px] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.4)]">$69,582.64</div>
+                <div class="text-center font-mono font-bold text-teal-400/90">88</div>
+                <div class="text-center font-mono text-gray-400">80</div>
+                <div class="text-center font-mono text-gray-400">92</div>
+                <div class="text-center text-gray-400 text-[11px] whitespace-nowrap">强势看涨</div>
+                <div class="flex justify-end pr-1 text-gray-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+
+            <!-- 数据行: 1H 展开 -->
+            <div class="grid-row-layout py-4 px-6 items-center border-b border-[#21212b] bg-[#121217] relative z-20 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                <div class="absolute left-0 top-0 bottom-0 w-[3px] bg-blue-500/40 pointer-events-none"></div>
+                <div class="font-mono text-white font-semibold text-[14px]">1 小时</div>
+                <div class="text-right font-mono text-gray-300">$69,562.41</div>
+                <div class="text-right font-mono text-gray-300">$69,562.34</div>
+                <div class="text-right font-mono text-gray-500">0.00%</div>
+                <div class="text-center font-bold text-gray-400 text-[12px] whitespace-nowrap"><span class="bg-gray-800 border border-gray-700 px-2 py-0.5 rounded shadow-sm">— 无 EV 优势</span></div>
+                
+                <div class="text-center text-gray-900">|</div>
+                
+                <div class="text-right font-mono text-blue-400 text-[15px] font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.4)]">$69,582.64</div>
+                <div class="text-center font-mono font-bold text-gray-400">-24</div>
+                <div class="text-center font-mono text-gray-500">-34</div>
+                <div class="text-center font-mono text-gray-500">38</div>
+                <div class="text-center text-gray-400 text-[11px] whitespace-nowrap">横盘震荡</div>
+                <div class="flex justify-end pr-1 text-gray-400">
+                    <svg class="w-4 h-4 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+
+            <!-- Expanded Pane: 略带微蓝的高级灰底 -->
+            <div class="p-6 bg-[#08080A]">
+                <div class="rounded-xl border border-[#1b1b22] bg-gradient-to-br from-[#101014] to-[#0A0A0E] p-6 lg:p-8 flex flex-col md:flex-row gap-8 relative shadow-lg">
+                    <div class="flex-1 border-r border-[#1b1b22] md:pr-10">
+                        <div class="flex justify-between items-center mb-4">
+                            <!-- 核心判定使用冷色调，不刺眼但也绝对不黑 -->
+                            <h3 class="text-gray-200 font-bold text-[14px] flex items-center gap-3 tracking-wide">
+                                无概率优势 / 方向不明，买入期望(EV)为负
+                            </h3>
+                            <span class="text-gray-500 font-mono text-[11px] font-bold bg-[#1b1b22] px-3 py-1 rounded shadow-inner border border-white/[0.02]">REMAIN 45M</span>
+                        </div>
+                        <p class="text-gray-400 text-[13px] leading-[1.9] mt-2">
+                            底层资产呈现极致的引擎撕裂：缠论形态与微观因子发生背离。PM 预测市场属二元期权，切忌在此刻进行无概率优势的 50/50 盲目双边押注，建议空仓观望。
+                        </p>
+                    </div>
+
+                    <div class="w-full md:w-80">
+                        <div class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-4">/ Signature Detection</div>
+                        <div class="space-y-2.5">
+                            <div class="border border-[#1b1b22] bg-[#0A0A0C] px-4 py-2.5 rounded-lg text-gray-300 text-[12px] flex items-center gap-3 font-mono shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] border-l-2 border-l-blue-900">
+                                <span class="text-blue-500 font-bold">»</span> 
+                                中枢内部显性拉扯分离
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==========================================
+         Optimization 3：Institutional Sidebar (华尔街终端黑曜石)
+         ========================================== -->
+    <div>
+        <div class="mb-5">
+            <h2 class="text-xl font-bold text-gray-300 flex items-center gap-2">
+                Optimization 3: Institutional Obsidian (华尔街黑曜石色块)
+            </h2>
+            <p class="text-[13px] text-gray-500 mt-1.5">纯黑（#050505）。极简至上。但是利用极粗的“左侧边色条 (Left-Border Thick Line)”引导视觉。这既维持了绝对的暗黑感，也能让人一眼识别这笔单子是该买还是不买。</p>
+        </div>
+        
+        <div class="bg-obsidian border border-gray-900 rounded-lg overflow-hidden relative shadow-2xl">
+            <!-- 头部 -->
+            <div class="grid-row-layout py-3.5 px-6 text-[10px] font-bold text-gray-600 bg-black border-b border-gray-900 uppercase">
+                <div>时间周期</div>
+                <div class="text-right">盘口基准</div>
+                <div class="text-right">目标价</div>
+                <div class="text-right">PM盈亏比</div>
+                <div class="text-center">PM 建议</div>
+                <div class="text-center text-gray-900">|</div>
+                <div class="text-right">实时价格</div>
+                <div class="text-center">综合评分</div>
+                <div class="text-center">缠论</div>
+                <div class="text-center">因子</div>
+                <div class="text-center">状态</div>
+                <div></div>
+            </div>
+
+            <!-- 数据行: 1H 展开 -->
+            <!-- 这里用边框厚线条指示大颜色：因为是观望，所以边框是暗灰色 -->
+            <div class="grid-row-layout py-4 px-6 items-center border-b border-gray-800 bg-[#0c0c0e] relative z-20 border-l-4 border-l-gray-600 shadow-md">
+                <div class="font-mono text-white font-semibold text-[14px]">1 小时</div>
+                <div class="text-right font-mono text-gray-400">$69,562.41</div>
+                <div class="text-right font-mono text-gray-400">$69,562.34</div>
+                <div class="text-right font-mono text-gray-500">0.00%</div>
+                <div class="text-center font-bold text-gray-300 text-[12px] whitespace-nowrap">— 无 EV 优势</div>
+                
+                <div class="text-center text-gray-900">|</div>
+                
+                <div class="text-right font-mono text-white text-[15px] font-bold">$69,582.64</div>
+                <div class="text-center font-mono font-bold text-gray-400">-24</div>
+                <div class="text-center font-mono text-gray-500">-34</div>
+                <div class="text-center font-mono text-gray-500">38</div>
+                <div class="text-center text-gray-500 text-[11px] whitespace-nowrap">横盘震荡</div>
+                <div class="flex justify-end pr-1 text-gray-400">
+                    <svg class="w-4 h-4 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+
+            <!-- Expanded Pane: 左粗边框顺延 -->
+            <div class="p-0 bg-transparent relative">
+                <div class="bg-obsidian p-6 lg:p-8 flex flex-col md:flex-row gap-8 relative border-b border-gray-900 border-l-4 border-l-gray-600">
+                    <div class="flex-1 border-r border-gray-900 md:pr-10">
+                        <div class="flex justify-between items-center mb-4">
+                            <!-- 结论完全交给白色清晰文字 -->
+                            <h3 class="text-white font-bold text-[15px] flex items-center gap-3 tracking-wide">
+                                无概率优势 / 方向不明，买入期望(EV)为负
+                            </h3>
+                            <span class="text-gray-500 font-mono text-[11px] uppercase">Expires: 45:00</span>
+                        </div>
+                        <p class="text-gray-400 text-[13px] leading-[1.9] mt-2">
+                            底层资产呈现极致的引擎撕裂：缠论形态与微观因子发生背离。PM 预测市场属二元期权，切忌在此刻进行无概率优势的 50/50 盲目双边押注，建议空仓观望。
+                        </p>
+                    </div>
+
+                    <div class="w-full md:w-80">
+                        <div class="text-[10px] text-gray-600 font-bold uppercase tracking-widest mb-4">/ Signals</div>
+                        <div class="space-y-2.5">
+                            <div class="border-b border-gray-900 pb-2 text-gray-400 text-[12px] flex items-center justify-between font-mono">
+                                <span>中枢内部显性拉扯分离</span>
+                                <span class="text-gray-600">YES</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据行: 15M (强买入 YES) 注意颜色边框 -->
+            <div class="grid-row-layout py-4 px-6 items-center border-b border-gray-900 bg-obsidian hover:bg-[#0c0c0e] transition-colors relative z-10 border-l-4 border-l-emerald-500">
+                <div class="font-mono text-gray-400 font-semibold text-[14px]">15 分钟</div>
+                <div class="text-right font-mono text-gray-500">$69,546.95</div>
+                <div class="text-right font-mono text-gray-500">$69,600.22</div>
+                <div class="text-right font-mono text-gray-500">+1.80%</div>
+                <!-- 这里的建议用纯白即可，靠左侧边框的绿色传递感情 -->
+                <div class="text-center font-bold text-gray-200 text-[12px] whitespace-nowrap">↑ 极佳期望 (买YES)</div>
+                
+                <div class="text-center text-gray-900">|</div>
+                
+                <div class="text-right font-mono text-gray-300 text-[15px] font-bold">$69,582.64</div>
+                <div class="text-center font-mono font-bold text-gray-400">88</div>
+                <div class="text-center font-mono text-gray-500">80</div>
+                <div class="text-center font-mono text-gray-500">92</div>
+                <div class="text-center text-gray-500 text-[11px] whitespace-nowrap">强势看涨</div>
+                <div class="flex justify-end pr-1 text-gray-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

@@ -1,15 +1,12 @@
 import { useState } from "react";
 import {
   TrendingUp,
-  TrendingDown,
-  Minus,
   Target,
-  ArrowUp,
-  ArrowDown,
   ChevronDown,
   ChevronUp,
   Zap,
   ExternalLink,
+  Clock,
 } from "lucide-react";
 import type { BettingGuide, PolyTimeframe } from "../lib/chanlun";
 
@@ -24,30 +21,26 @@ function formatPrice(n: number) {
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-const actionConfig: Record<string, { icon: typeof TrendingUp; color: string; bg: string; label: string }> = {
-  "看涨买入": { icon: ArrowUp, color: "text-emerald-500", bg: "bg-emerald-500/10", label: "做多" },
-  "看跌买入": { icon: ArrowDown, color: "text-red-500", bg: "bg-red-500/10", label: "做空" },
-  "观望": { icon: Minus, color: "text-amber-500", bg: "bg-amber-500/10", label: "观望" },
-};
-
-function rateColor(rate: number) {
-  const a = Math.abs(rate);
-  if (a >= 60) return rate > 0 ? "text-emerald-500" : "text-red-400";
-  if (a >= 35) return rate > 0 ? "text-emerald-500" : "text-red-400";
-  return "text-amber-500";
+// Micro-Accent Color Logic (Monochrome Ghost style matrix)
+function getAccentColor(val: number, isPercent = false) {
+  const threshold = isPercent ? 0.5 : 0;
+  if (val > threshold) return "text-emerald-400";
+  if (val < -threshold) return "text-rose-400";
+  return "text-gray-500";
 }
 
-function rateBgColor(rate: number) {
-  if (rate > 35) return "bg-emerald-500";
-  if (rate < -35) return "bg-red-400";
-  return "bg-amber-500";
+function getAdviceColor(advice: string) {
+  if (!advice || advice.includes("无明显方向") || advice.includes("震荡") || advice.includes("观望")) return "text-gray-400";
+  if (advice.includes("看涨") || advice.includes("买入 YES")) return "text-emerald-400";
+  if (advice.includes("看跌") || advice.includes("买入 NO")) return "text-rose-400";
+  return "text-gray-400";
 }
 
-function formatVolume(n: number) {
-  if (n == null || isNaN(n)) return "--";
-  if (n >= 1e6) return "$" + (n / 1e6).toFixed(1) + "M";
-  if (n >= 1e3) return "$" + (n / 1e3).toFixed(0) + "K";
-  return "$" + n.toFixed(0);
+function getStateColor(state: string) {
+  if (!state || state.includes("无" + "概率优势") || state.includes("震荡") || state.includes("不明")) return "text-gray-400";
+  if (state.includes("强势") || state.includes("看涨") || state.includes("共振") || state.includes("Edge") || state.includes("同向") || state.includes("多头抵抗")) return "text-emerald-400";
+  if (state.includes("压力") || state.includes("看跌") || state.includes("分歧") || state.includes("撕裂") || state.includes("衰竭") || state.includes("下降分形")) return "text-rose-400";
+  return "text-gray-400";
 }
 
 export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGuideProps) {
@@ -56,278 +49,190 @@ export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGui
   if (!guides || guides.length === 0) return null;
 
   return (
-    <div className="chart-section">
-      <div className="flex items-center justify-between mb-4">
+    <div className="chart-section bg-[var(--bg-surface)] rounded border border-[var(--border-subtle)] overflow-hidden shadow-xl pb-0 border-b-0">
+      <div className="flex items-center justify-between p-4 md:px-6 bg-transparent border-b border-[var(--border-base)]">
         <div className="flex items-center gap-2">
           <Target className="h-4 w-4 text-[var(--brand-100)]" />
-          <h3 className="section-label">Polymarket 投注指南</h3>
+          <h3 className="section-label text-[var(--fg-base)] tracking-widest uppercase mb-0 pb-0 border-0">Polymarket 投注指南</h3>
         </div>
-        <span className="text-[10px] text-[var(--fg-muted)] font-mono">
-          {new Date(timestamp).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
+        <span className="text-[10px] text-[var(--fg-muted)] font-mono tracking-widest">
+          数据更新: {new Date(timestamp).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
         </span>
       </div>
 
-      <div className="overflow-x-auto -mx-6 px-6">
-        <div className="grid mb-1 pb-1 border-b border-[var(--border-base)]" style={{ gridTemplateColumns: "5.4fr 5.2fr 32px" }}>
-          <div className="text-center text-[11px] font-bold text-rose-400/90 border-r border-[var(--border-base)] pr-4">
-            🎯 Polymarket 盘口结算预期
+      <div className="overflow-x-auto">
+        <div className="min-w-[1020px]">
+          {/* Header */}
+          <div className="grid py-3.5 px-6 text-[10px] font-bold text-[var(--fg-muted)] bg-transparent border-b border-[var(--border-base)] uppercase tracking-widest gap-x-2"
+               style={{ gridTemplateColumns: "80px 1.2fr 1.2fr 1fr 140px 20px 1fr 80px 80px 80px 100px 30px" }}>
+            <div className="pl-1">时间周期</div>
+            <div className="text-right">盘口基准</div>
+            <div className="text-right">目标预测</div>
+            <div className="text-right">PM套利空间</div>
+            <div className="text-center">核心交易指令</div>
+            <div className="text-center flex justify-center text-[var(--fg-muted)]">|</div>
+            <div className="text-right text-[var(--fg-muted)]">现货锚定</div>
+            <div className="text-center">综合评分</div>
+            <div className="text-center">缠论</div>
+            <div className="text-center">因子</div>
+            <div className="text-center">趋势状态</div>
+            <div />
           </div>
-          <div className="text-center text-[11px] font-bold text-amber-500/90 pl-4">
-            📊 当前价格技术面追踪 (5分钟刷新)
-          </div>
-          <div />
-        </div>
 
-        <div className="grid pb-2 border-b border-[var(--border-strong)]" style={{ gridTemplateColumns: "0.8fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 0.8fr 0.8fr 1.2fr 32px" }}>
-          <span className="text-left text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pl-1">时间周期</span>
-          <span className="text-right text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)]">盘口基准</span>
-          <span className="text-right text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pr-2">目标价</span>
-          <span className="text-right text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] pr-6">PM盈亏比</span>
-          <span className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)]">PM建议</span>
-          
-          <span className="text-right text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)] border-l border-[var(--border-subtle)] pl-4 pr-4">实时价格</span>
-          <span className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)]">综合评分</span>
-          <span className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)]">缠论</span>
-          <span className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)]">因子</span>
-          <span className="text-center text-[10px] font-semibold tracking-[0.1em] uppercase text-[var(--fg-muted)]">状态</span>
-          <span className="w-8"></span>
-        </div>
-        
-        <div className="flex flex-col">
-            {guides.map((guide) => {
-              const ac = actionConfig[guide.action] || actionConfig["观望"];
-              const ActionIcon = ac.icon;
-              const compositeRate = guide.compositeWinRate ?? guide.winRate;
-              const chanlunRate = guide.chanlunWinRate ?? compositeRate;
-              const factorRate = guide.factorWinRate ?? 0;
-              const deltaPct = guide.predictedDeltaPct ?? 0;
-              const isExpanded = expandedTf === guide.timeframe;
-              const tf = timeframes.find((t) => t.timeframe === guide.timeframe);
+          <div className="flex flex-col">
+              {guides.map((guide) => {
+                const compositeRate = guide.compositeWinRate ?? guide.winRate ?? 0;
+                const chanlunRate = guide.chanlunWinRate ?? compositeRate;
+                const factorRate = guide.factorWinRate ?? 0;
+                const deltaPct = guide.predictedDeltaPct ?? 0;
+                const isExpanded = expandedTf === guide.timeframe;
+                const adviceLabel = guide.pmActionAdvice || "— 无明显方向 (震荡观望)";
 
-              return (
-                <div
-                  key={guide.timeframe}
-                  className="border-b border-[var(--border-base)] last:border-b-0 group"
-                >
-                    <button
-                      onClick={() => setExpandedTf(isExpanded ? null : guide.timeframe)}
-                      className="w-full text-left hover:bg-[var(--bg-subtle)] transition-colors"
-                    >
-                      <div className="grid py-3 items-center" style={{ gridTemplateColumns: "0.8fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr 0.8fr 0.8fr 1.2fr 32px" }}>
-                        {/* 时间周期 */}
-                        <div className="flex items-center pl-1">
-                          <span className="font-mono text-sm font-bold text-[var(--fg-base)]">
-                            {guide.timeframeLabel}
-                          </span>
-                        </div>
+                return (
+                  <div key={guide.timeframe} className="border-b border-[var(--border-base)] last:border-b-0 group">
+                      <button
+                        onClick={() => setExpandedTf(isExpanded ? null : guide.timeframe)}
+                        className="w-full text-left bg-transparent hover:bg-[var(--bg-subtle)] transition-colors relative z-10 block"
+                      >
+                        <div className="grid py-4 px-6 items-center gap-x-2" style={{ gridTemplateColumns: "80px 1.2fr 1.2fr 1fr 140px 20px 1fr 80px 80px 80px 100px 30px" }}>
+                          
+                          {/* 时间周期 */}
+                          <div className="font-mono text-[var(--fg-base)] font-semibold text-[14px] flex items-baseline relative">
+                            {guide.timeframeLabel.replace('分钟', '分').replace('小时', '时')}
+                            <span className="text-[var(--fg-muted)] text-[9px] ml-1 absolute -right-3 top-0.5">TICK</span>
+                          </div>
 
-                        {/* PM 盘口基准价 */}
-                        <div className="flex items-center justify-end">
-                          <span className="font-mono text-sm text-[var(--fg-base)]">
+                          {/* PM 盘口基准价 */}
+                          <div className="text-right font-mono text-[var(--fg-muted)] text-[13px]">
                             ${guide.basePrice ? formatPrice(guide.basePrice) : "--"}
-                          </span>
-                        </div>
+                          </div>
 
-                        {/* 预测目标价 */}
-                        <div className="flex items-center justify-end">
-                          <span className="font-mono text-sm font-bold text-[var(--fg-base)]">
+                          {/* 预测目标价 */}
+                          <div className="text-right font-mono text-[var(--fg-muted)] text-[13px]">
                             ${formatPrice(guide.predictedPrice)}
-                          </span>
-                        </div>
+                          </div>
 
-                        {/* PM 盈亏比 */}
-                        <div className="flex items-center justify-end pr-6">
-                          <span className={`font-mono text-sm font-bold ${
-                            deltaPct > 0 ? "text-emerald-500" : deltaPct < 0 ? "text-red-400" : "text-[var(--fg-muted)]"
-                          }`}>
+                          {/* PM 盈亏比 (Micro-Accent) */}
+                          <div className={`text-right font-mono text-[13px] font-bold ${getAccentColor(deltaPct, true)}`}>
                             {deltaPct > 0 ? "+" : ""}{deltaPct.toFixed(2)}%
-                          </span>
-                        </div>
+                          </div>
 
-                        {/* PM 建议 */}
-                        <div className="flex items-center justify-center">
-                          {guide.pmActionAdvice ? (
-                            <span className={`inline-flex items-center gap-1 font-semibold text-[11px] ${
-                              guide.pmActionAdvice.includes("胜算") || guide.pmActionAdvice.includes("优势") ? "text-emerald-500" :
-                              guide.pmActionAdvice.includes("风险") || guide.pmActionAdvice.includes("劣势") ? "text-red-400" :
-                              "text-amber-500"
-                            }`}>
-                              {guide.pmActionAdvice}
-                            </span>
-                          ) : (
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${ac.bg} ${ac.color}`}>
-                              <ActionIcon className="h-3 w-3" />
-                              {ac.label}
-                            </span>
-                          )}
-                        </div>
-                        
-                        {/* 实时价格 (New) */}
-                        <div className="flex items-center justify-end pr-4 border-l border-[var(--border-subtle)] pl-4">
-                          <span className="font-mono text-sm font-semibold text-amber-500/80">
+                          {/* PM 建议 (Micro-Accent) */}
+                          <div className={`text-center font-bold text-[12px] whitespace-nowrap tracking-wide ${getAdviceColor(adviceLabel)}`}>
+                            {adviceLabel}
+                          </div>
+                          
+                          <div className="text-center text-[var(--bg-subtle)] text-[10px]">|</div>
+
+                          {/* 实时价格 - 纯白高亮 */}
+                          <div className="text-right font-mono text-[var(--fg-base)] text-[14px] font-bold tracking-tight pr-2">
                             ${guide.currentPrice ? formatPrice(guide.currentPrice) : "--"}
-                          </span>
-                        </div>
-
-                        {/* 综合评分 */}
-                        <div className="flex items-center justify-center gap-1.5 pl-2">
-                          <div className="w-8 h-1.5 rounded-full bg-[var(--bg-subtle)] overflow-hidden hidden sm:block">
-                            <div
-                              className={`h-full rounded-full ${rateBgColor(compositeRate)}`}
-                              style={{ width: `${Math.min(Math.abs(compositeRate), 100)}%` }}
-                            />
                           </div>
-                          <span className={`font-mono text-sm font-bold ${rateColor(compositeRate)}`}>
+
+                          {/* 综合评分 */}
+                          <div className={`text-center font-mono font-bold text-[13px] ${getAccentColor(compositeRate)}`}>
                             {compositeRate > 0 ? "+" : ""}{compositeRate}
-                          </span>
-                        </div>
-
-                        {/* 缠论 */}
-                        <div className="flex items-center justify-center">
-                          <span className={`font-mono text-xs font-bold ${rateColor(chanlunRate)}`}>
-                            {chanlunRate}
-                          </span>
-                        </div>
-
-                        {/* 因子 */}
-                        <div className="flex items-center justify-center">
-                          <span className={`font-mono text-xs font-bold ${rateColor(factorRate)}`}>
-                            {factorRate}
-                          </span>
-                        </div>
-
-                        {/* 状态 */}
-                        <div className="flex items-center justify-center">
-                          <span className={`text-[10px] font-semibold px-1 py-0.5 rounded text-center leading-tight ${
-                            guide.spotMomentumDesc?.includes("强势看涨") ? "bg-emerald-500/10 text-emerald-500" :
-                            guide.spotMomentumDesc?.includes("压力") || guide.spotMomentumDesc?.includes("分歧") ? "bg-red-500/10 text-red-400" :
-                            guide.spotMomentumDesc?.includes("震荡") || guide.spotMomentumDesc?.includes("多头抵抗") ? "bg-amber-500/10 text-amber-500" :
-                            guide.dirStatus?.includes("同向") ? "bg-emerald-500/10 text-emerald-500" :
-                            guide.dirStatus?.includes("矛盾") ? "bg-red-500/10 text-red-400" :
-                            "bg-[var(--bg-subtle)] text-[var(--fg-muted)]"
-                          }`}>
-                            {guide.spotMomentumDesc || guide.dirStatus || guide.scoreLevel || "--"}
-                          </span>
-                        </div>
-
-                        {/* 展开箭头 */}
-                        <div className="flex items-center justify-center">
-                          {isExpanded ? (
-                            <ChevronUp className="h-3.5 w-3.5 text-[var(--fg-muted)]" />
-                          ) : (
-                            <ChevronDown className="h-3.5 w-3.5 text-[var(--fg-muted)]" />
-                          )}
-                        </div>
-                      </div>
-                    </button>
-
-                    {/* Expanded detail panel */}
-                    {isExpanded && (
-                      <div className="px-4 pb-4 space-y-3 border-t border-[var(--border-base)] bg-[var(--bg-subtle)]/30">
-                        {/* Detail grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3">
-                          <DetailCell
-                            label="评分等级"
-                            value={guide.scoreLevel || "--"}
-                            sub={guide.scoreDesc || ""}
-                          />
-                          <DetailCell
-                            label="系统综合预测价差"
-                            value={`${guide.predictedDelta > 0 ? "+" : ""}$${formatPrice(Math.abs(guide.predictedDelta))}`}
-                            sub={`${guide.predictedDeltaPct > 0 ? "+" : ""}${guide.predictedDeltaPct.toFixed(2)}% vs 基准`}
-                            subColor={guide.predictedDelta > 0 ? "text-emerald-500" : guide.predictedDelta < 0 ? "text-red-400" : undefined}
-                          />
-                          <DetailCell
-                            label="缠论评分"
-                            value={`${chanlunRate > 0 ? "+" : ""}${chanlunRate}`}
-                            sub={chanlunRate > 35 ? "看涨" : chanlunRate < -35 ? "看跌" : "横盘"}
-                            subColor={chanlunRate > 35 ? "text-emerald-500" : chanlunRate < -35 ? "text-red-400" : undefined}
-                          />
-                          <DetailCell
-                            label="剩余时间"
-                            value={guide.hoursLeft < 1 ? `${Math.round(guide.hoursLeft * 60)}分钟` : `${guide.hoursLeft.toFixed(1)}小时`}
-                            sub={guide.endTimeLocal || ""}
-                          />
-                        </div>
-
-                        {/* Reason */}
-                        <div className={`text-[11px] font-semibold p-2 rounded ${ac.bg}`}>
-                          <Zap className={`h-3 w-3 inline mr-1 ${ac.color}`} />
-                          <span className={ac.color}>{guide.reason}</span>
-                        </div>
-
-                        {/* Factors */}
-                        {guide.factors && guide.factors.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {guide.factors.map((f: string, i: number) => (
-                              <span
-                                key={i}
-                                className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[var(--bg-subtle)] text-[var(--fg-muted)] border border-[var(--border-base)]"
-                              >
-                                {f}
-                              </span>
-                            ))}
                           </div>
-                        )}
 
-                        {/* Links */}
-                        <div className="flex flex-wrap gap-3">
-                          {guide.upDownLink && (
-                            <a
-                              href={guide.upDownLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[10px] text-[var(--brand-100)] hover:underline"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              查看 Up/Down 市场
-                            </a>
-                          )}
-                          {guide.strikeEventSlug && (
-                            <a
-                              href={`https://polymarket.com/event/${guide.strikeEventSlug}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[10px] text-[var(--brand-100)] hover:underline"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              查看行权价阶梯
-                            </a>
-                          )}
+                          {/* 缠论 */}
+                          <div className={`text-center font-mono text-[13px] font-semibold ${getAccentColor(chanlunRate)}`}>
+                            {chanlunRate}
+                          </div>
+
+                          {/* 因子 */}
+                          <div className={`text-center font-mono text-[13px] font-semibold ${getAccentColor(factorRate)}`}>
+                            {factorRate}
+                          </div>
+
+                          {/* 状态 */}
+                          <div className={`text-center text-[11px] font-medium whitespace-nowrap tracking-widest ${getStateColor(guide.spotMomentumDesc || guide.dirStatus || "")}`}>
+                            {guide.spotMomentumDesc || guide.dirStatus || guide.scoreLevel || "--"}
+                          </div>
+
+                          {/* Arrow */}
+                          <div className="flex justify-end pr-1 text-[var(--fg-muted)]">
+                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                </div>
-              );
-            })}
-        </div>
-      </div>
-    </div>
-  );
-}
+                      </button>
 
-function DetailCell({
-  label,
-  value,
-  sub,
-  subColor,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  subColor?: string;
-}) {
-  return (
-    <div className="p-2 rounded bg-[var(--bg-subtle)]">
-      <div className="text-[9px] font-semibold tracking-wider uppercase text-[var(--fg-muted)] mb-0.5">
-        {label}
-      </div>
-      <div className="font-mono text-sm font-bold text-[var(--fg-base)]">{value}</div>
-      {sub && (
-        <div className={`text-[10px] mt-0.5 ${subColor || "text-[var(--fg-muted)]"}`}>
-          {sub}
+                      {/* Expanded Panel - Adaptive layout without right blank space trap */}
+                      {isExpanded && (
+                        <div className="px-6 py-6 md:px-8 bg-black/10 border-t border-[var(--border-base)] relative z-20 shadow-inner">
+                          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-[var(--border-strong)] pointer-events-none" />
+                          
+                          <div className="rounded border border-[#1E222A] bg-[#080808] p-5 lg:p-6 shadow-md">
+                            <div className="grid grid-cols-1 md:grid-cols-[1fr_260px] gap-8">
+                              
+                              {/* 左侧：引擎判定核心 */}
+                              <div className="md:border-r border-[var(--border-base)] md:pr-8">
+                                <div className="flex justify-between items-center mb-4 border-b border-[var(--border-subtle)] pb-3">
+                                  <h3 className="text-[var(--fg-base)] font-bold text-[13px] flex items-center gap-2 tracking-wide">
+                                    <span className="text-[var(--fg-muted)] font-mono text-[10px] uppercase font-normal mr-1">[核心诊断]</span>
+                                    {guide.reason || "系统正在演算..."}
+                                  </h3>
+                                  <div className="flex items-center gap-1.5 opacity-80 text-[10px] font-mono text-[var(--fg-muted)] bg-[var(--bg-surface)] px-2.5 py-1 rounded shadow-inner uppercase">
+                                    <Clock className="w-3 h-3 text-[var(--fg-muted)]" />
+                                    TTL: {guide.hoursLeft < 1 ? Math.round(guide.hoursLeft * 60) + "分钟" : guide.hoursLeft.toFixed(1) + "小时"}
+                                  </div>
+                                </div>
+                                <p className="text-[var(--fg-muted)] text-[12px] leading-[2] font-sans tracking-wide">
+                                  {guide.engineAnalysis || "暂无极化的概率偏离 Edge。"}
+                                </p>
+                              </div>
+
+                              {/* 右侧：微观结构 (adjusted to column instead of aggressive blank space) */}
+                              <div className="w-full">
+                                <div className="text-[10px] text-[var(--fg-muted)] font-bold uppercase tracking-[0.2em] mb-4">/ 盘口微观异动</div>
+                                <div className="space-y-2.5">
+                                  {guide.factors && guide.factors.length > 0 ? (
+                                    guide.factors.map((f: string, i: number) => {
+                                      const isBullish = f.includes("多头") || f.includes("金叉") || f.includes("底背离") || f.includes("缩量企稳") || f.includes("买入");
+                                      const isBearish = f.includes("空头") || f.includes("死叉") || f.includes("顶背离") || f.includes("放量大跌") || f.includes("超买") || f.includes("卖出") || f.includes("衰竭");
+                                      return (
+                                        <div
+                                          key={`market-${i}`}
+                                          className="border-0 bg-transparent px-1 py-1 text-[var(--fg-muted)] text-[11px] flex items-center gap-2 font-mono"
+                                        >
+                                          <span className="text-gray-500 text-[10px] font-bold">[SYS]</span> 
+                                          <span className="flex-1">{f}</span>
+                                          {isBullish && <span className="text-emerald-400 text-[12px] font-bold">✓</span>}
+                                          {isBearish && <span className="text-rose-400 text-[12px] font-bold">✓</span>}
+                                        </div>
+                                      );
+                                    })
+                                  ) : (
+                                    <span className="text-[11px] text-[var(--fg-muted)] font-mono italic block bg-transparent border-0 p-1 rounded">
+                                      [SYS] 暂无显著异动信号
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Action Links */}
+                                <div className="flex flex-col gap-2.5 mt-5 pt-4 border-t border-[var(--border-subtle)]">
+                                  {guide.upDownLink && (
+                                    <a href={guide.upDownLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-[10px] font-mono text-[var(--fg-muted)] hover:text-[var(--fg-base)] transition-colors uppercase tracking-widest">
+                                      <ExternalLink className="h-3.5 w-3.5" /> 直达 Up/Down 市场核验赔率
+                                    </a>
+                                  )}
+                                  {guide.strikeEventSlug && (
+                                    <a href={`https://polymarket.com/event/${guide.strikeEventSlug}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-[10px] font-mono text-[var(--fg-muted)] hover:text-[var(--fg-base)] transition-colors uppercase tracking-widest">
+                                      <ExternalLink className="h-3.5 w-3.5" /> 直达行权阶梯部署阵地
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                );
+              })}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
