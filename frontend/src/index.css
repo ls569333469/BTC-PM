@@ -243,6 +243,10 @@
   ::before {
     border-color: var(--color-border);
   }
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);

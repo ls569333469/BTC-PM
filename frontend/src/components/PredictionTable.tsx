@@ -57,27 +57,28 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
         </div>
       </div>
 
-      <div className="overflow-x-auto -mx-6 px-6">
-        {/* Header */}
-        <div
-          className="grid items-end pb-2 border-b border-[var(--border-strong)] gap-x-3"
-          style={{ gridTemplateColumns: cols }}
-        >
-          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)]">周期</span>
-          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)]">信号</span>
-          {hasGuides && (
-            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right inline-flex items-center justify-end gap-1">
-              <Target className="h-3 w-3" />现货基准价
-            </span>
-          )}
-          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">目标价</span>
-          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">现货涨跌幅</span>
-          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-center">缠论</span>
-          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-center">六因子</span>
-          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-center">综合评分</span>
-          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">支撑位</span>
-          <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">阻力位</span>
-        </div>
+      <div className="w-full overflow-x-auto -mx-4 px-4 md:-mx-6 md:px-6 pb-2">
+        <div className="min-w-[850px]">
+          {/* Header */}
+          <div
+            className="grid items-end pb-2 border-b border-[var(--border-strong)] gap-x-3"
+            style={{ gridTemplateColumns: cols }}
+          >
+            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)]">周期</span>
+            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)]">信号</span>
+            {hasGuides && (
+              <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right inline-flex items-center justify-end gap-1">
+                <Target className="h-3 w-3" />现货基准价
+              </span>
+            )}
+            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">目标价</span>
+            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">现货涨跌幅</span>
+            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-center">缠论</span>
+            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-center">六因子</span>
+            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-center">综合评分</span>
+            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">支撑位</span>
+            <span className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--fg-muted)] text-right">阻力位</span>
+          </div>
 
         {/* Rows */}
         {predictions.map((pred) => {
@@ -174,6 +175,7 @@ export function PredictionTable({ predictions, currentPrice, bettingGuides }: Pr
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
