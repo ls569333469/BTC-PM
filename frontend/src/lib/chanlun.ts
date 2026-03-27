@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { API_BASE } from "./api";
+import { API_BASE } from "./fetch";
 
 export interface Prediction {
   timeframe: string;

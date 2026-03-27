@@ -13,7 +13,7 @@ except ImportError:
     HAS_TALIB = False
 
 
-MULTIPLIERS = {"5m": 0.5, "15m": 0.75, "30m": 1, "1h": 2, "2h": 3, "4h": 5, "12h": 10, "1d": 14}
+MULTIPLIERS = {"5m": 0.5, "15m": 0.75, "30m": 1, "1h": 1.5, "2h": 1.5, "4h": 1.5, "12h": 1.5, "1d": 1.5}
 TIMEFRAMES = ["5m", "15m", "30m", "1h", "2h", "4h", "12h", "1d"]
 WEIGHT_CLASSES = {"5m": "1H", "15m": "1H", "30m": "1H", "1h": "1H", "2h": "4H", "4h": "4H", "12h": "1D", "1d": "1D"}
 
@@ -87,8 +87,6 @@ def generate_prediction_for_tf(
         else:
             target_price = current_price + (base_move * dir_modifier * 0.3)
 
-    # Triggers
-    triggers = _build_triggers(divergence, nearest_zs, current_price, indicators, funding_rate, direction)
 
     return {
         "timeframe": tf,
@@ -103,46 +101,8 @@ def generate_prediction_for_tf(
         "factorWinRate": round(kwargs.get("factor_raw", 0), 1) if "factor_raw" in kwargs else 0,
         "support": round(support, 2),
         "resistance": round(resistance, 2),
-        "triggers": triggers,
+        "triggers": [],
         "confidence": "high" if win_rate >= 65 else ("medium" if win_rate >= 45 else "low"),
         "weightClass": WEIGHT_CLASSES.get(tf, "1H"),
     }
 
-
-def _build_triggers(divergence, nearest_zs, current_price, indicators, funding_rate, direction) -> list[str]:
-    """Build human-readable trigger descriptions."""
-    triggers = []
-
-    if divergence.get("top_div"):
-        triggers.append("MACD顶背离检测到 - 看跌信号")
-    if divergence.get("bottom_div"):
-        triggers.append("MACD底背离检测到 - 看涨信号")
-
-    if nearest_zs:
-        if abs(current_price - nearest_zs["high"]) / current_price < 0.005:
-            triggers.append("价格触及中枢上沿 - 突破/压力区")
-        if abs(current_price - nearest_zs["low"]) / current_price < 0.005:
-            triggers.append("价格触及中枢下沿 - 支撑测试")
-
-    rsi = indicators.get("rsi")
-    if rsi is not None:
-        if rsi > 70:
-            triggers.append(f"RSI超买 (>{round(rsi)})")
-        elif rsi < 30:
-            triggers.append(f"RSI超卖 (<{round(rsi)})")
-
-    if funding_rate is not None and abs(funding_rate) > 0.0001:
-        if funding_rate > 0.0001:
-            triggers.append("资金费率偏高 - 多头挤压风险")
-        elif funding_rate < -0.0001:
-            triggers.append("资金费率转负 - 空头挤压风险")
-
-    if not triggers:
-        if direction == "up":
-            triggers.append("上升通道内的趋势延续")
-        elif direction == "down":
-            triggers.append("下降通道内的趋势延续")
-        else:
-            triggers.append("中枢附近的区间震荡")
-
-    return triggers

@@ -14,6 +14,7 @@ interface PolymarketGuideProps {
   guides: BettingGuide[];
   timeframes: PolyTimeframe[];
   timestamp: string;
+  spotPrice?: number;
 }
 
 function formatPrice(n: number) {
@@ -43,7 +44,7 @@ function getStateColor(state: string) {
   return "text-gray-400";
 }
 
-export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGuideProps) {
+export function PolymarketGuide({ guides, timeframes, timestamp, spotPrice }: PolymarketGuideProps) {
   const [expandedTf, setExpandedTf] = useState<string | null>(null);
 
   if (!guides || guides.length === 0) return null;
@@ -124,9 +125,9 @@ export function PolymarketGuide({ guides, timeframes, timestamp }: PolymarketGui
                           
                           <div className="text-center text-[var(--bg-subtle)] text-[10px]">|</div>
 
-                          {/* 实时价格 - 纯白高亮 */}
+                          {/* 实时价格 — 同步自主引擎 currentPrice */}
                           <div className="text-right font-mono text-[var(--fg-base)] text-[14px] font-bold tracking-tight pr-2">
-                            ${guide.currentPrice ? formatPrice(guide.currentPrice) : "--"}
+                            ${(spotPrice ?? guide.currentPrice) ? formatPrice(spotPrice ?? guide.currentPrice) : "--"}
                           </div>
 
                           {/* 综合评分 */}

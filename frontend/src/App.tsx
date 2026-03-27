@@ -1,17 +1,15 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
-import { useChanlunAnalysis, useChanlunValidation, useBacktestStats, usePolymarketPrices } from "./lib/chanlun";
+import { useChanlunAnalysis, useBacktestStats, usePolymarketPrices } from "./lib/chanlun";
 import { useWebSocket } from "./hooks/useWebSocket";
-import type { Prediction } from "./lib/chanlun";
 import { MarketOverview } from "./components/MarketOverview";
 import { PredictionTable } from "./components/PredictionTable";
 import { PriceChart } from "./components/PriceChart";
 import { PredictionChart } from "./components/PredictionChart";
 import { WinRateChart } from "./components/WinRateChart";
-import { TriggerPanel } from "./components/TriggerPanel";
-import { ValidationPanel } from "./components/ValidationPanel";
+
 import { RefreshTimer } from "./components/RefreshTimer";
 import { BacktestPanel } from "./components/BacktestPanel";
 import { PolymarketGuide } from "./components/PolymarketGuide";
@@ -24,8 +22,7 @@ export default function App() {
   const queryClient = useQueryClient();
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
-  const [prevPredictions, setPrevPredictions] = useState<Prediction[] | null>(null);
-  const prevPredRef = useRef<Prediction[] | null>(null);
+
 
   const {
     data: analysis,
@@ -35,9 +32,7 @@ export default function App() {
     isFetching,
   } = useChanlunAnalysis(REFRESH_INTERVAL);
 
-  const {
-    data: validation,
-  } = useChanlunValidation(prevPredictions ?? undefined);
+
 
   const { data: backtestStats } = useBacktestStats(REFRESH_INTERVAL);
   const { data: polymarketData } = usePolymarketPrices(REFRESH_INTERVAL);
@@ -45,15 +40,7 @@ export default function App() {
   // WebSocket — real-time push from APScheduler
   const { connected: wsConnected } = useWebSocket();
 
-  // Save current predictions for validation on next refresh
-  useEffect(() => {
-    if (analysis?.predictions && analysis.predictions.length > 0) {
-      if (prevPredRef.current && prevPredRef.current !== analysis.predictions) {
-        setPrevPredictions(prevPredRef.current);
-      }
-      prevPredRef.current = analysis.predictions;
-    }
-  }, [analysis?.predictions]);
+
 
   // Autonomous UTC Clock watcher for Polymarket Sync
   // Fully decoupled from Backend WebSockets to ensure zero dependency on APScheduler timing.
@@ -187,20 +174,16 @@ export default function App() {
             {/* Polymarket Betting Guide (detailed — replaces simple panel) */}
             {polymarketData && polymarketData.guides && polymarketData.guides.length > 0 && (
               <ErrorBoundary>
-                <PolymarketGuide
+              <PolymarketGuide
                   guides={polymarketData.guides}
                   timeframes={polymarketData.timeframes}
                   timestamp={polymarketData.timestamp}
+                  spotPrice={analysis.currentPrice}
                 />
               </ErrorBoundary>
             )}
 
-            {/* Triggers Row */}
-            <div className="grid grid-cols-1 gap-4">
-              <ErrorBoundary>
-                <TriggerPanel predictions={analysis.predictions} />
-              </ErrorBoundary>
-            </div>
+
 
             {/* Backtest Statistics */}
             {backtestStats && (
@@ -209,16 +192,7 @@ export default function App() {
               </ErrorBoundary>
             )}
 
-            {/* Validation panel */}
-            {validation && (
-              <ErrorBoundary>
-                <ValidationPanel
-                  validations={validation.validations}
-                  currentPrice={validation.currentPrice}
-                  timestamp={validation.timestamp}
-                />
-              </ErrorBoundary>
-            )}
+
 
             {/* Disclaimer */}
             <div className="border-t border-[var(--border-base)] pt-4 pb-6">
