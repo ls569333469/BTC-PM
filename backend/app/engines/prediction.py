@@ -71,15 +71,15 @@ def generate_prediction_for_tf(
             # Strong Breakout: Target punches through the structural resistance
             target_price = resistance + (base_move * 0.3)
         else:
-            # Rebound: Target maps exactly to the structural roof
-            target_price = resistance * 0.999
+            # Rebound: Target maps exactly to the structural roof, safeguard for positive gain
+            target_price = max(current_price + (base_move * 0.2), resistance - (base_move * 0.1))
     elif direction == "down":
         if raw_score <= -60:
             # Strong Breakdown: Target punches through structural floor
             target_price = support - (base_move * 0.3)
         else:
-            # Retracement: Target maps exactly to the structural floor
-            target_price = support * 1.001
+            # Retracement: Target maps exactly to the structural floor, safeguard for negative gain
+            target_price = min(current_price - (base_move * 0.2), support + (base_move * 0.1))
     else:
         # Sideways: Mean reversion towards the Chanlun center of gravity
         if nearest_zs and is_center_in_range:

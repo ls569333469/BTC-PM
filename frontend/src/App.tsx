@@ -4,7 +4,7 @@ import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
 import { useChanlunAnalysis, useBacktestStats, usePolymarketPrices } from "./lib/chanlun";
 import { useWebSocket } from "./hooks/useWebSocket";
-import { MarketOverview } from "./components/MarketOverview";
+
 import { PredictionTable } from "./components/PredictionTable";
 import { PriceChart } from "./components/PriceChart";
 import { PredictionChart } from "./components/PredictionChart";
@@ -137,10 +137,7 @@ export default function App() {
           </div>
         ) : analysis ? (
           <div className="tab-enter space-y-5">
-            {/* KPI Overview */}
-            <ErrorBoundary>
-              <MarketOverview data={analysis} />
-            </ErrorBoundary>
+
 
             {/* Price Chart with Chanlun overlay */}
             <ErrorBoundary>
